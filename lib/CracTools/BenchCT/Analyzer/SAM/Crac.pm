@@ -72,6 +72,18 @@ sub _checkErrors {
   }
 }
 
+sub _checkSplice {
+  my $self = shift;
+  my $sam_line = shift;
+  my $options = shift;
+
+  # If there is multiple alignements, we count it as a false negative
+  return 0 if defined $options->{classified} && !$sam_line->isClassified($options->{classified});
+  return 0 if defined $options->{not_classified} && $sam_line->isClassified($options->{not_classified});
+
+  return $self->SUPER::_checkSplice($sam_line,$options);
+}
+
 sub _checkMapping {
   my $self = shift;
   my $sam_line = shift;
