@@ -66,28 +66,32 @@ my $pm = Parallel::ForkManager->new($nb_process);
 # create softwares
 my %softwares;
 
+# analyzers
+my @analyzers;
+
 #data structure retrieval and handling
 $pm -> run_on_finish ( # called BEFORE the first call to start()
   sub {
     my ($pid, $exit_code, $ident, $exit_signal, $core_dump, $data_structure_reference) = @_;
     if(defined $data_structure_reference) {
       my $soft_name = $data_structure_reference->{soft_name};
+      my $file = $data_structure_reference->{file};
       my $stats = $data_structure_reference->{stats};
-      $softwares{$soft_name} = $stats;
+      #$softwares{$soft_name} = $stats;
+      foreach my $check_type (keys %{$stats}) {
+        if(defined $softwares{$soft_name}->{$check_type}) {
+          print STDERR "Cannot check $check_type with file ###, another files has already process this information\n";
+        } else {
+          $softwares{$soft_name}->{$check_type} = $stats->{$check_type};
+        }
+      }
     }
   }
 );
 
-SOFTWARES:
+# Create all analyzers for each softwares
 foreach my $soft (@{$config->{softwares}}) {
-  # Fork softwares
-  $pm->start() and next SOFTWARES;
 
-  # Set a new FileHandle for the child because we will seek that file
-  $checker->getBedFileHandle(CracTools::Utils::getReadingFileHandle($config->{checker}->{files}->{mapping})) if defined $config->{checker}->{files}->{mapping};
-  $checker->getErrFileHandle(CracTools::Utils::getReadingFileHandle($config->{checker}->{files}->{errors})) if defined $config->{checker}->{files}->{errors};
-
-  my %stats;
   foreach my $file (@{$soft->{files}}) {
     next if !defined $file->{check};
     print STDERR "[$soft->{name}] Reading $file->{name} file\n" if $verbose;
@@ -101,17 +105,35 @@ foreach my $soft (@{$config->{softwares}}) {
       false_positives_file => $file->{false_positives},
       false_negatives_file => $file->{false_negatives},
     );
-    foreach my $check_type (@{$analyzer->allCheckedEvents}) {
-      if(defined $stats{$check_type}) {
-        print STDERR "Cannot check $check_type with file $file->{name}, another files has already process this information\n";
-      } else {
-        $stats{$check_type} = $analyzer->getStats($check_type);
-      }
-    }
+    push @analyzers, {analyzer => $analyzer, soft => $soft, file => $file->{name}};
   }
-  # send it back to the parent process
-  $pm->finish(0, {soft_name => $soft->{name}, stats => \%stats}); 
 }
+
+# run analyzers
+ANALYZERS:
+foreach my $analyzer (@analyzers) {
+
+  # Fork analyzers
+  $pm->start() and next ANALYZERS;
+  
+  my %stats;
+
+  # Set a new FileHandle for the child because we will seek that file
+  $checker->getBedFileHandle(CracTools::Utils::getReadingFileHandle($config->{checker}->{files}->{mapping})) if defined $config->{checker}->{files}->{mapping};
+  $checker->getErrFileHandle(CracTools::Utils::getReadingFileHandle($config->{checker}->{files}->{errors})) if defined $config->{checker}->{files}->{errors};
+
+  # This starts the analyzer to process its file
+  $analyzer->{analyzer}->run();
+
+  # fill the stats hash
+  foreach my $check_type (@{$analyzer->{analyzer}->allCheckedEvents}) {
+    $stats{$check_type} = $analyzer->{analyzer}->getStats($check_type);
+  }
+
+  # send it back to the parent process
+  $pm->finish(0, {soft_name => $analyzer->{soft}->{name}, stats => \%stats, file => $analyzer->{file}}); 
+}
+
 $pm->wait_all_children;
 
 # Set event types that have been checked

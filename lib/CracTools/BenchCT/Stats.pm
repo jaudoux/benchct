@@ -105,4 +105,10 @@ sub print {
   print $fh "Accuracy   : ".$self->getAccuracy."\n";
 }
 
+sub closeOutputs {
+  my $self = shift;
+  close $self->getFalsePositivesFileHandle() if defined $self->getFalsePositivesFileHandle();
+  delete $self->{false_positives_fh};
+}
+
 1;

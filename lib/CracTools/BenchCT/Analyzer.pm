@@ -27,6 +27,7 @@ sub new {
 
   my $self = bless {
     checker => $args{checker},
+    args => \%args,
   }, $class;
 
   my @check_types;
@@ -61,9 +62,18 @@ sub new {
     }
   }
 
-  $self->_init(@_);
+  #$self->_init(@_);
 
   return $self;
+}
+
+sub run {
+  my $self = shift;
+  $self->_init(%{$self->{args}});
+  # Now we close stat files outputs
+  foreach my $stats (values %{$self->{stats}}) {
+    $stats->closeOutputs();
+  }
 }
 
 sub _init {
