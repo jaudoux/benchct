@@ -31,7 +31,7 @@ sub _init {
         $self->getStats('chimera')->addTruePositive($true_chimera);
       } else {
         #print STDERR Dumper($chimera);
-        $self->getStats('chimera')->addFalsePositive();
+        $self->getStats('chimera')->addFalsePositive($chimera->{chim_key});
       }
     }
   }

@@ -5,6 +5,34 @@ package CracTools::BenchCT::Analyzer::SAM;
 #
 use parent 'CracTools::BenchCT::Analyzer';
 
+=head1 SYNOPSIS
+
+Only Primary alignements are verified. Secondary and chimeric alignements are not verified.
+
+=head1 CAN CHECK
+
+=over 1
+
+=item mapping
+
+=item splice
+
+=back
+
+SAM analyzer can check mapping and splice from a SAM alignement. B<Alignement>
+information is extracted from the first mapped base. B<Splice> information is
+extracted from the cigar by searching C<N> characters.
+
+=head1 OPTIONS
+
+If the C<max_hits> option is specified, we will only check reads alignements 
+that have a number of hits (NH field in SAM) inferior to a given value.
+Discarded reads will be counted as I<false-negative>.
+
+  max_hits: positive Integer
+
+=cut
+
 use CracTools::SAMReader;
 use CracTools::SAMReader::SAMline;
 
@@ -33,13 +61,14 @@ sub _init {
     }
     $sam_line->qname($name);
     # This is a hook line for subclasses
-    $self->_processLine($sam_line);
+    $self->_processLine($sam_line,$args{options});
   }
 }
 
 sub _checkMapping {
   my $self = shift;
   my $sam_line = shift;
+  my $options = shift;
   # Is this is a not secondary alignement or if there is no multiple hits for this read, we do
   # consider its alignment
   if(!$sam_line->isFlagged($CracTools::SAMReader::SAMline::flags{SECONDARY_ALIGNMENT}) &&
@@ -48,6 +77,11 @@ sub _checkMapping {
     if(!$sam_line->isFlagged($CracTools::SAMReader::SAMline::flags{UNMAPPED}) # Unmapped reads counts a False Negative
       # && $sam_line->getOptionalField("NH") == 1
       ) {
+
+      
+      # If there is multiple alignements, we count it as a false negative
+      my $nb_hits = $sam_line->getOptionalField("NH");
+      return 0 if defined $options->{max_hits} && defined $nb_hits && $nb_hits > $options->{max_hits};
       
       # Remove an eventual "chr" prefix to the reference name
       my $chr = $sam_line->rname;
@@ -63,7 +97,7 @@ sub _checkMapping {
       if($self->checker->isGoodAlignment($sam_line->qname,$chr,$pos_start,$sam_line->pos-1,$strand)) {
         $self->getStats('mapping')->addTruePositive(); 
       } else {
-        $self->getStats('mapping')->addFalsePositive(); 
+        $self->getStats('mapping')->addFalsePositive($sam_line->line);
         #print $sam_line->line,"\n";
       }
     } else {
@@ -77,25 +111,25 @@ sub _checkMapping {
 
 sub _checkSplice {
   my $self = shift;
-  my $line = shift;
+  my $sam_line = shift;
   # Is this is a not secondary alignement or if there is no multiple hits for this read, we do
   # consider its alignment
-  if(!$line->isFlagged($CracTools::SAMReader::SAMline::flags{SECONDARY_ALIGNMENT}) &&
-    !$line->isFlagged($CracTools::SAMReader::SAMline::flags{CHIMERIC_ALIGNMENT})) {
-    my $cigar = $line->cigar;
-    my $pos = $line->pos;
-    my $chr = $line->chr;
-    my $last_splice_end_pos = $line->pos;
+  if(!$sam_line->isFlagged($CracTools::SAMReader::SAMline::flags{SECONDARY_ALIGNMENT}) &&
+    !$sam_line->isFlagged($CracTools::SAMReader::SAMline::flags{CHIMERIC_ALIGNMENT})) {
+    my $cigar = $sam_line->cigar;
+    my $pos = $sam_line->pos;
+    my $chr = $sam_line->chr;
+    my $last_splice_end_pos = $sam_line->pos;
     my $last_key = undef;
-    my @ops = $line->cigar =~ /(\d+\D)/g;
+    my @ops = $sam_line->cigar =~ /(\d+\D)/g;
     foreach (@ops) {
       my ($nb,$op) = $_ =~ /(\d+)(\D)/;
       if($op =~ /(M|X|=|D)/) {
         $pos += $nb;
       } elsif($op eq 'N') {
         my $strand = 1;
-        if(($line->isFlagged(1) && (!$line->isFlagged(16) && $line->isFlagged(64)) || ($line->isFlagged(16) && $line->isFlagged(128))) # PE case
-          || (!$line->isFlagged(1) && $line->isFlagged(16))) { # Single end case
+        if(($sam_line->isFlagged(1) && (!$sam_line->isFlagged(16) && $sam_line->isFlagged(64)) || ($sam_line->isFlagged(16) && $sam_line->isFlagged(128))) # PE case
+          || (!$sam_line->isFlagged(1) && $sam_line->isFlagged(16))) { # Single end case
           $strand = -1;
         }        
         my $true_splice = $self->checker->isTrueSplice($chr,$pos,$nb,$strand);
@@ -104,7 +138,7 @@ sub _checkSplice {
           $self->getStats('splice')->addTruePositive($true_splice);
         } else {
           #print STDERR Dumper($bed_line);
-          $self->getStats('splice')->addFalsePositive();
+          $self->getStats('splice')->addFalsePositive($sam_line->line);
         }
         $pos += $nb;
       }
@@ -115,8 +149,9 @@ sub _checkSplice {
 sub _processLine {
   my $self = shift;
   my $sam_line = shift;
-  $self->_checkMapping($sam_line) if defined $self->getStats('mapping');
-  $self->_checkSplice($sam_line) if defined $self->getStats('splice');
+  my $options = shift;
+  $self->_checkMapping($sam_line,$options) if defined $self->getStats('mapping');
+  $self->_checkSplice($sam_line,$options) if defined $self->getStats('splice');
 }
 
 1;

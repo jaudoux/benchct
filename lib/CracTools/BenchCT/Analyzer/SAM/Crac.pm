@@ -5,6 +5,41 @@ package CracTools::BenchCT::Analyzer::SAM::Crac;
 #
 use parent 'CracTools::BenchCT::Analyzer::SAM';
 
+=head1 SYNOPSIS
+
+L<SAM::Crac> analyzer is based on L<SAM> and make use of some of CRAC's extended fields
+either to add filters or to check other types of events.
+
+=head1 CAN CHECK
+
+=over 1
+
+=item mapping [inherited]
+
+=item splice [inherited]
+
+=item error
+
+=back
+
+L<SAM::Crac> can check I<Errors> in addition of I<Mapping> and I<Splice> already check by
+L<SAM> analyzer.
+
+=head1 OPTIONS
+
+The C<classified> option will check is a read has the following
+classification before to verify its alignement. If the classification
+does not match, the read will be counted as I<false-negative>.
+
+  classified: [unique|multiple|duplicated|normal]
+  
+
+The C<not_classified> option will check is a read has NOT the following
+classification before to verify its alignement. If the classification
+DOES match, the read will be counted as I<false-negative>.
+
+  not_classified: [unique|multiple|duplicated|normal]
+
 =head2 new
 
 =cut
@@ -35,6 +70,18 @@ sub _checkErrors {
       $self->getStats('error')->addFalsePositive(); 
     }
   }
+}
+
+sub _checkMapping {
+  my $self = shift;
+  my $sam_line = shift;
+  my $options = shift;
+
+  # If there is multiple alignements, we count it as a false negative
+  return 0 if defined $options->{classified} && !$sam_line->isClassified($options->{classified});
+  return 0 if defined $options->{not_classified} && $sam_line->isClassified($options->{not_classified});
+
+  return $self->SUPER::_checkMapping($sam_line,$options);
 }
 
 sub _processLine {

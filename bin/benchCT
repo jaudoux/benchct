@@ -83,6 +83,10 @@ foreach my $soft (@{$config->{softwares}}) {
   # Fork softwares
   $pm->start() and next SOFTWARES;
 
+  # Set a new FileHandle for the child because we will seek that file
+  $checker->getBedFileHandle(CracTools::Utils::getReadingFileHandle($config->{checker}->{files}->{mapping})) if defined $config->{checker}->{files}->{mapping};
+  $checker->getErrFileHandle(CracTools::Utils::getReadingFileHandle($config->{checker}->{files}->{errors})) if defined $config->{checker}->{files}->{errors};
+
   my %stats;
   foreach my $file (@{$soft->{files}}) {
     next if !defined $file->{check};
@@ -94,6 +98,8 @@ foreach my $soft (@{$config->{softwares}}) {
       checker => $checker,
       check => $file->{check},
       options => $file->{options},
+      false_positives_file => $file->{false_positives},
+      false_negatives_file => $file->{false_negatives},
     );
     foreach my $check_type (@{$analyzer->allCheckedEvents}) {
       if(defined $stats{$check_type}) {
@@ -120,7 +126,7 @@ foreach my $soft (keys %softwares) {
 my @event_types = sort keys %event_types;
 my @cols = map { my $x = $_; map $x."::".$_, @stat_types } @event_types;
 print "softwares\t",join("\t",@cols),"\n";
-foreach my $soft (keys %softwares) {
+foreach my $soft (sort keys %softwares) {
   my @output = ($soft);
   foreach my $event_type (@event_types) {
     my $value;

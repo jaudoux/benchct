@@ -363,54 +363,40 @@ sub isGoodAlignment {
   my $bed_line = $self->getBedLine($read_name);
 
   if(defined $bed_line) {
-    my $first_mapped_block;
     my $block_cumulated_size = 0;
 
     # We try to find the first block where the read is located
     foreach my $block (@{$bed_line->{blocks}}) {
       if($block->{block_end} > $pos_start) {
-        $first_mapped_block = $block;
-        last;
-      }
-    }
+        # Check if the read has been mapped to the right reference
+        if($block->{chr} ne $ref_name) {
+          #print STDERR "Wrong chr\n";
+          next;
+        }
+         
+        # Check if protocol is stranded and the read is mapped to the wrong strand
+        if($self->isStranded && CracTools::Utils::convertStrand($block->{strand}) != $strand) {
+          #print STDERR "Wrong strand\n";
+          next;
+        }
 
-    # There should be a corresponding block, otherwise there is a problem
-    # between the BED file and the query
-    if(defined $first_mapped_block) {
-
-      # Check if the read has been mapped to the right reference
-      if($first_mapped_block->{chr} ne $ref_name) {
-        #print STDERR "Wrong chr\n";
-        return 0;
-      }
+        # Difference between the first pos of the block to the
+        # pos where the alignement is started
+        my $delta = $pos_start - $block->{block_start};
        
-      # Check if protocol is stranded and the read is mapped to the wrong strand
-      if($self->isStranded && CracTools::Utils::convertStrand($first_mapped_block->{strand}) != $strand) {
-        #print STDERR "Wrong strand\n";
-        return 0;
-      }
 
-      # Difference between the first pos of the block to the
-      # pos where the alignement is started
-      my $delta = $pos_start - $first_mapped_block->{block_start};
-     
-
-      # Check if the position if right within a THRESHOLD_MAPPING window
-      if(abs($first_mapped_block->{ref_start} + $delta - $ref_start) <= $CracTools::BenchCT::Const::THRESHOLD_MAPPING &&
-        $first_mapped_block) {
-        return 1;
-      } else {
-        #print STDERR "Bad position : ".($first_mapped_block->{ref_start} + $delta)."\n";
-        #print STDERR Dumper($bed_line);
-        return 0;
+        # Check if the position if right within a THRESHOLD_MAPPING window
+        if(abs($block->{ref_start} + $delta - $ref_start) <= $CracTools::BenchCT::Const::THRESHOLD_MAPPING) {
+          return 1;
+        }
       }
-    } else {
-      warn "There is a problem with the read $ref_name";
-      return 0;
     }
   } else {
+    warn "There is a problem with the read $read_name";
+    print STDERR Dumper($bed_line);
     return 0;
   }
+  return 0;
 }
 
 =head2 getBedFileHandle
@@ -421,6 +407,10 @@ Return a filehandle on the bed file.
 
 sub getBedFileHandle {
   my $self = shift;
+  my $new_fh = shift;
+  if(defined $new_fh) {
+    $self->{bed_fh} = $new_fh;
+  }
   return $self->{bed_fh};
 }
 
@@ -432,6 +422,10 @@ Return a filehandle on the bed file.
 
 sub getErrFileHandle {
   my $self = shift;
+  my $new_fh = shift;
+  if(defined $new_fh) {
+    $self->{err_fh} = $new_fh;
+  }
   return $self->{err_fh};
 }
 
@@ -450,9 +444,9 @@ sub getBedLine {
   my $read_id = $self->getReadId($read_name);
 
   # Get the seek position of this read in the bed file
-  my $seek_pos = $self->{bed_seek_pos}[$read_id];
 
-  if(defined $seek_pos) {
+  if(defined $read_id) {
+    my $seek_pos = $self->{bed_seek_pos}[$read_id];
 
     # Retrieve the whole line in the bed file
     my $line = CracTools::Utils::getLineFromSeekPos($self->getBedFileHandle,$seek_pos);
@@ -490,6 +484,7 @@ sub getErrLines {
 
     # Retrieve the whole line in the bed file
     my $line = CracTools::Utils::getLineFromSeekPos($fh,$seek_pos);
+
     # Parse this line in order to have a nice little hash
     push(@err_lines,CracTools::BenchCT::Utils::parseErrLine($line));
 
@@ -497,6 +492,7 @@ sub getErrLines {
     my $found_error = 1;
     while($found_error) {
       my $next_line = <$fh>;
+      last if not $next_line;
       my $err_line = CracTools::BenchCT::Utils::parseErrLine($next_line);
       if($err_line->{read_id} == $read_id) {
         push(@err_lines,$err_line);

@@ -44,6 +44,7 @@ sub _processLine {
       $type = 'snp';
       # We shift the pos if the reference has more than one nucleotide
       $pos = $vcf_line->{pos} + ($ref_length - 1);
+      next if $alt =~ /N/i;
       $true_mutation = $self->checker->isTrueSNP($vcf_line->{chr},$pos,$alt);
     # This is a deletion
     } elsif($ref_length > $alt_length) {

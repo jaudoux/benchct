@@ -1,12 +1,12 @@
 ---
 checker:
     files:
-        mutations:    /data/reads/Flux/GRCh37-mutated-200-simulated-errors-48M.info
-        #mapping:      /data/reads/Flux/GRCh37-mutated-200-simulated-errors-48M.NotMutatedBed
-#        splices:      /data/reads/Flux/GRCh37-mutated-200-simulated-errors-48M-junctions.bed
+#        mutations:    /data/reads/Flux/GRCh37-mutated-200-simulated-errors-48M.vcf
+        mapping:      /data/reads/Flux/GRCh37-mutated-200-simulated-errors-48M.NotMutatedBed
+        splices:      /data/reads/Flux/GRCh37-mutated-200-simulated-errors-48M-junctions.bed
         chimeras:    /data/reads/Flux/GRCh37-mutated-200-simulated-errors-48M-chimeras.tsv
-        #errors:       /data/reads/Flux/GRCh37-mutated-200-simulated-errors-48M.err
-        genome_conf:  /data/indexes/crac/GRCh37.conf
+#        errors:       /data/reads/Flux/GRCh37-mutated-200-simulated-errors-48M.err
+#        genome_conf:  /data/indexes/crac/GRCh37.conf
     thresholds:
         MAPPING:    5
         SNP:        5
@@ -16,33 +16,92 @@ checker:
         ERROR:      5
         SPLICE:     5
 softwares:
+#    - name: chimCT
+#      files:
+#        - name: /data/storage/Mapping/r-crac/GRCh37/1.9.11/CRAC-GRCh37-mutated-200-simulated-errors-48M-22-no-ambiguity-chimCT.tsv
+#          type: ChimCT
+#          check: all
+#          options:
+#              min_crac_score: 70
+    - name: chimCT2
+      files:
+        - name: /data/storage/Mapping/r-crac/GRCh37/1.9.11/CRAC-GRCh37-mutated-200-simulated-errors-48M-22-no-ambiguity-chimCT2.tsv
+          type: ChimCT
+          check: all
+          false_positives: chimCT2-false-positives
+          options:
+              min_crac_score: 70
+    - name: GSNAP
+      files:
+        - name: /tmp/jziw1X2Sdm.unpaired_transloc
+          type: SAM::GSNAPTransloc
+          check: 
+            - chimera
+        - name: /tmp/jziw1X2Sdm.unpaired_uniq
+          type: SAM
+          check: 
+            - splice
     - name: crac-v2
       files:
-#        - name: /data/storage/Mapping/r-crac/GRCh37/1.9.11/CRAC-GRCh37-mutated-200-simulated-errors-48M-22-no-ambiguity-junctions.bed
+        - name: /data/storage/Mapping/r-crac/GRCh37/1.9.11/CRAC-GRCh37-mutated-200-simulated-errors-48M-22-no-ambiguity.bam
+          false_positives: crac-v2-false-positives
+          type: SAM::Crac
+          check:
+            - mapping
+        - name: /data/storage/Mapping/r-crac/GRCh37/1.9.11/CRAC-GRCh37-mutated-200-simulated-errors-48M-22-no-ambiguity-chimeras.tsv
+          type: CRAC::Chimera
+          check: 
+            - chimera
+          options:
+              min_score: 0.7
+        - name: /data/storage/Mapping/r-crac/GRCh37/1.9.11/CRAC-GRCh37-mutated-200-simulated-errors-48M-22-no-ambiguity-junctions.bed
+          type: BED::Junction
+          check: 
+            - splice
+#        - name: /data/storage/Mapping/r-crac/GRCh37/1.9.11/CRAC-GRCh37-mutated-200-simulated-errors-48M-22-no-ambiguity.vcf
+#          type: VCF
+#          check: all
+#          check: all
+#    - name: crac-v1.6
+#      files:
+#        - name: /data/storage/Mapping/r-crac/GRCh37/1.6/CRAC-GRCh37-mutated-200-simulated-errors-48M-22-no-ambiguity-chimeras.tsv
+#        #- name: test/test-chimeras.tsv
+#          type: CRAC::Chimera
+#          check: all
+#        - name: /data/storage/Mapping/r-crac/GRCh37/1.6/CRAC-GRCh37-mutated-200-simulated-errors-48M-22-no-ambiguity-junctions.bed
 #          type: BED::Junction
 #          check: all
-        - name: /data/storage/Mapping/r-crac/GRCh37/1.9.11/CRAC-GRCh37-mutated-200-simulated-errors-48M-22-no-ambiguity.vcf
-          type: VCF
-          check: all
-#        #- name: /data/storage/Mapping/r-crac/GRCh37/1.9.11/CRAC-GRCh37-mutated-200-simulated-errors-48M-22-no-ambiguity.bam
-#        #  type: SAM::Crac
-#        #  check: all
-    - name: tophat2
-      files:  
+#    - name: STAR
+#      files:
+#        - name: /data/results/CRACV2/perf_test/GRCh37-mutated-200-simulated-errors-48M/star_output/star_junkSJ.out.tab
+#          type: STAR::Junction
+#          check: all
+#        - name: /data/results/CRACV2/perf_test/GRCh37-mutated-200-simulated-errors-48M/star_output/star_junkChimeric.out.junction
+#          type: STAR::Chimera
+#          check: all
+#    - name: tophat2
+#      files:  
 #        - name: /data/results/CRACV2/perf_test/GRCh37-mutated-200-simulated-errors-48M/tophat_output/junctions.bed
 #          type: BED::Junction
 #          check: all
-        - name: /data/results/CRACV2/perf_test/GRCh37-mutated-200-simulated-errors-48M/tophat_output/insertions.bed
-          type: BED::Insertion
-          check: all
+#        - name: /data/results/CRACV2/perf_test/GRCh37-mutated-200-simulated-errors-48M/tophat_output/fusions.out
+#          type: Tophat::Fusion
+#          check: all
+#        - name: /data/results/CRACV2/perf_test/GRCh37-mutated-200-simulated-errors-48M/tophat_output/insertions.bed
+#          type: Tophat::Insertion
+#          check: all
 #        - name: /data/results/CRACV2/perf_test/GRCh37-mutated-200-simulated-errors-48M/tophat_output/deletions.bed
 #          type: BED::Deletion
+#          check: all
+#        - name: /data/results/CRACV2/perf_test/GRCh37-mutated-200-simulated-errors-48M/tophat_output/accepted_hits.bam
+#          type: SAM
 #          check: all
 output:
   statistics:
     - sensitivity
     - accuracy
-      #    - true-positives
-      #    - false-positives
+    - true-positives
+    - false-positives
+    - nb-elements
       #    - gain
   nb_decimals: 4

@@ -12,6 +12,7 @@
 - generates multiple statistics ouput
   - 1 for each software
   - 1 for each cause
+- benchCT could be parrallelized, on the file reading/parsing
 
 # BUGS
 - There is a problem with CRAC insertions there are 1-based instead of 0-based

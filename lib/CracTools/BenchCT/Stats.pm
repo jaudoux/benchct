@@ -8,6 +8,7 @@ package CracTools::BenchCT::Stats;
 =cut
 
 use CracTools::BitVector;
+use CracTools::Utils;
 
 sub new {
   my $class = shift;
@@ -18,7 +19,8 @@ sub new {
     bitvector => CracTools::BitVector->new($args{nb_elements}),
     true_positives => 0,
     false_positives => 0,
-  }, $class;
+    false_positives_fh => defined $args{false_positives_file}? CracTools::Utils::getWritingFileHandle($args{false_positives_file}) : undef,
+  },$class;
 
   return $self;
 }
@@ -39,6 +41,12 @@ sub addTruePositive {
 
 sub addFalsePositive {
   my $self = shift;
+  my $false_positive = shift;
+  my $fh = $self->getFalsePositivesFileHandle;
+  if(defined $false_positive && defined $fh) {
+    chomp $false_positive;
+    print $fh $false_positive,"\n";
+  }
   $self->{false_positives}++;
 }
 
@@ -78,6 +86,11 @@ sub getGain {
   my $self = shift;
   return 0 if($self->nbTruePositives == 0 && $self->nbFalseNegatives == 0);
   return ($self->nbTruePositives - $self->nbFalsePositives) / ($self->nbTruePositives + $self->nbFalseNegatives);
+}
+
+sub getFalsePositivesFileHandle {
+  my $self = shift;
+  return $self->{false_positives_fh};
 }
 
 sub print {
