@@ -12,7 +12,8 @@
 - generates multiple statistics ouput
   - 1 for each software
   - 1 for each cause
-- benchCT could be parrallelized, on the file reading/parsing
+- [DONE] benchCT could be parrallelized, on the file reading/parsing
+- use threads instead of forks (less memory consuming)
 
 # BUGS
 - There is a problem with CRAC insertions there are 1-based instead of 0-based
