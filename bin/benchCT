@@ -8,15 +8,19 @@ use YAML::XS qw/LoadFile/;
 use CracTools::BenchCT;
 use CracTools::BenchCT::Const;
 use CracTools::BenchCT::Checker;
+use CracTools::BenchCT::Stats;
 use Getopt::Long qw(:config auto_version); # Get options
 use Pod::Usage;   # Printing pod documentation in terminal
 use Data::Dumper;
 use Carp;
+use Parallel::ForkManager 0.7.6;
 
 my ($help,$man,$verbose);
+my $nb_process = 1;
 GetOptions( "v|verbose"         => \$verbose,
             "man"               => \$man,
             "help"              => \$help,
+            "p=i"               => \$nb_process,
           ) or pod2usage(-verbose => 1);
 
 pod2usage(-verbose => 1)  if ($help);
@@ -57,10 +61,31 @@ my $checker = CracTools::BenchCT::Checker->new(
   verbose             => $verbose,
 );
 
+my $pm = Parallel::ForkManager->new($nb_process);
+
 # create softwares
 my %softwares;
-my %event_types;
+
+#data structure retrieval and handling
+$pm -> run_on_finish ( # called BEFORE the first call to start()
+  sub {
+    my ($pid, $exit_code, $ident, $exit_signal, $core_dump, $data_structure_reference) = @_;
+    if(defined $data_structure_reference) {
+      print "SUPER COOL\n";
+    } else {
+      print "MERDE...\n";
+    }
+    my $soft_name = $data_structure_reference->{soft_name};
+    my $stats = $data_structure_reference->{stats};
+    $softwares{$soft_name} = $stats;
+  }
+);
+
+SOFTWARES:
 foreach my $soft (@{$config->{softwares}}) {
+  # Fork softwares
+  $pm->start() and next SOFTWARES;
+
   my %stats;
   foreach my $file (@{$soft->{files}}) {
     next if !defined $file->{check};
@@ -74,7 +99,6 @@ foreach my $soft (@{$config->{softwares}}) {
       options => $file->{options},
     );
     foreach my $check_type (@{$analyzer->allCheckedEvents}) {
-      $event_types{$check_type} = 1;
       if(defined $stats{$check_type}) {
         print STDERR "Cannot check $check_type with file $file->{name}, another files has already process this information\n";
       } else {
@@ -82,7 +106,18 @@ foreach my $soft (@{$config->{softwares}}) {
       }
     }
   }
-  $softwares{$soft->{name}} = \%stats;
+  # send it back to the parent process
+  print $soft->{name},"\n";
+  $pm->finish(0, {soft_name => $soft->{name}, stats => \%stats}); 
+}
+$pm->wait_all_children;
+
+# Set event types that have been checked
+my %event_types;
+foreach my $soft (keys %softwares) {
+  foreach my $check_type (keys %{$softwares{$soft}}) {
+    $event_types{$check_type} = 1;
+  }
 }
 
 # Print output
