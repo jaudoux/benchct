@@ -71,13 +71,10 @@ $pm -> run_on_finish ( # called BEFORE the first call to start()
   sub {
     my ($pid, $exit_code, $ident, $exit_signal, $core_dump, $data_structure_reference) = @_;
     if(defined $data_structure_reference) {
-      print "SUPER COOL\n";
-    } else {
-      print "MERDE...\n";
+      my $soft_name = $data_structure_reference->{soft_name};
+      my $stats = $data_structure_reference->{stats};
+      $softwares{$soft_name} = $stats;
     }
-    my $soft_name = $data_structure_reference->{soft_name};
-    my $stats = $data_structure_reference->{stats};
-    $softwares{$soft_name} = $stats;
   }
 );
 
@@ -107,7 +104,6 @@ foreach my $soft (@{$config->{softwares}}) {
     }
   }
   # send it back to the parent process
-  print $soft->{name},"\n";
   $pm->finish(0, {soft_name => $soft->{name}, stats => \%stats}); 
 }
 $pm->wait_all_children;
