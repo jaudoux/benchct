@@ -123,7 +123,7 @@ sub parseChimeraLine {
   my $line = shift;
   my %args = @_;
   my ($chr1,$pos1,$strand1,$chr2,$pos2,$strand2,$read_ids,$nb_reads) = split("\t",$line);
-  my @read_ids = sort {$a <=> $b} split(",",$read_ids);
+  my @read_ids = sort {$a <=> $b} split(":",$read_ids);
   return {
     chr1      => $chr1,
     pos1      => $pos1,
