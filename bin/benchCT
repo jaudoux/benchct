@@ -119,7 +119,7 @@ foreach my $soft (keys %softwares) {
         $value = $softwares{$soft}->{$event_type}->nbElements if $stat_type =~ /nb-elements/i;
         $value = sprintf("%.".$CracTools::BenchCT::Const::NB_DECIMALS."f", $value) if $stat_type =~ /(accuracy|sensitivity|gain)/;
       } else {
-        $value = 'N/A';
+        $value = 'NA';
       }
       push @output, $value;
     }
