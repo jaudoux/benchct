@@ -1,0 +1,95 @@
+#! /usr/bin/perl
+
+use strict;
+use warnings;
+
+use CracTools::BenchCT::Checker;
+use CracTools::BenchCT::Analyzer::SAM;
+use CracTools::BenchCT::Analyzer::VCF;
+use CracTools::BenchCT::Analyzer::BED::Junction;
+use Getopt::Long qw(:config auto_version); # Get options
+use Pod::Usage;   # Printing pod documentation in terminal
+
+
+my ($help,$man);
+my ($info_file,$bed_file,$err_file,$sam_file,$junction_bed_file,$vcf_file);
+my @analyzers = ("toto");
+
+GetOptions( "i|info-file=s"  => \$info_file,
+            "b|bed-file=s"   => \$bed_file,
+            "e|error-file=s" => \$err_file,
+            "s|sam=s"        => \$sam_file,
+            "junction-bed=s" => \$junction_bed_file,
+            "vcf=s"          => \$vcf_file,
+            "man"            => \$man,
+            "help"           => \$help,
+          ) or pod2usage(-verbose => 1);
+
+pod2usage(-verbose => 1)  if ($help);
+pod2usage(-verbose => 2)  if ($man);
+
+# Check mandatory arguments
+if(#!defined $info_file || !defined $err_file || 
+  !defined $bed_file) {
+  print STDERR "Missing mandatory argument(s): ";
+  print STDERR "info_file " unless defined $info_file;
+  print STDERR "err_file " unless defined $err_file;
+  print STDERR "bed_file " unless defined $bed_file;
+  print STDERR "\n";
+  pod2usage(-verbose => 1);
+}
+
+my $checker = CracTools::BenchCT::Checker->new(info_file => $info_file,
+                                      bed_file  => $bed_file,
+                                      err_file  => $err_file,
+                                      );
+
+if(defined $sam_file) {
+
+  my $sam_analyzer = CracTools::BenchCT::Analyzer::SAM->new(
+    checker => $checker,
+    check_reads_mapping => 1,
+    file => $sam_file,
+  );
+
+  print "# MAPPING\n";
+  $sam_analyzer->mappingStats->print(\*STDOUT);
+
+}
+
+if(defined $junction_bed_file) {
+
+  my $junction_bed_analyzer = CracTools::BenchCT::Analyzer::BED::Junction->new(
+    checker => $checker,
+    check_splices => 1,
+    file => $junction_bed_file,
+  );
+
+  print "# SPLICES\n";
+  $junction_bed_analyzer->splicesStats->print(\*STDOUT);
+}
+
+if(defined $vcf_file) {
+
+  my $vcf_analyzer = CracTools::BenchCT::Analyzer::VCF->new(
+    checker => $checker,
+    check_snps => 1,
+    check_deletions => 1,
+    check_insertions => 1,
+    file => $vcf_file,
+  );
+
+  print "# SNPS\n";
+  $vcf_analyzer->snpsStats->print(\*STDOUT);
+  print "# INSERTIONS\n";
+  $vcf_analyzer->insertionsStats->print(\*STDOUT);
+  print "# DELTIONS\n";
+  $vcf_analyzer->deletionsStats->print(\*STDOUT);
+}
+
+# Check if thers is analyzers
+if(@analyzers == 0) {
+  print STDERR "You should specify one tool results at least\n";
+  pod2usage(-verbose => 1);
+}
+
