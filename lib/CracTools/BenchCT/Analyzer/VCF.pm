@@ -76,6 +76,9 @@ sub _processLine {
       $pos = $vcf_line->{pos} + ($ref_length - 1);
     }
 
+    # Pos -1 because checker is 0 based and VCF is 1-based
+    $pos--;
+
     # Now we check the validity of the event
     if($self->checker->isTrueMutation($type,$vcf_line->{chr},$pos,$length)) {
       $self->getStats($type)->addTruePositive();

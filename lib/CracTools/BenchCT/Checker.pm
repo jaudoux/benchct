@@ -8,6 +8,7 @@ use CracTools::BenchCT::Const;
 use CracTools::BenchCT::Events::Mutation;
 use CracTools::BenchCT::Events::Splice;
 use Data::Dumper; #for debugging
+use Carp;
 
 =head2 new
 
@@ -25,10 +26,12 @@ sub new {
     info_file  => $args{info_file},
     bed_file   => $args{bed_file},
     bed_fh    => CracTools::Utils::getReadingFileHandle($args{bed_file}),
-    error_file => $args{error_file},
+    err_file => $args{err_file},
     read_ids   => {}, # TODO avoid this conversion hash and use a interval tree to seek for bed line that could correspond to a read alignement
     bed_seek_pos => [],
+    err_pos => [],
     nb_reads   => 0,
+    nb_errors => 0,
     events => { snp         => CracTools::BenchCT::Events::Mutation->new( threshold => $CracTools::BenchCT::Const::THRESHOLD_SNP ), # Create a special CracTools::BenchCT::Events type for snp that would use a genomeMask
                 insertion   => CracTools::BenchCT::Events::Mutation->new( threshold => $CracTools::BenchCT::Const::THRESHOLD_INS ),
                 deleletion  => CracTools::BenchCT::Events::Mutation->new( threshold => $CracTools::BenchCT::Const::THRESHOLD_DEL ),
@@ -92,6 +95,16 @@ sub _init {
       $self->getEvents($mutation_type)->addMutation($info_line);
     }
   }
+
+  # Now we read the error file
+  my $err_it = CracTools::Utils::getFileIterator(file =>$self->{err_file},
+    parsing_method => \&parseErrLine,
+  );
+
+  while(my $err_line = $err_it->()) {
+    $self->{err_pos}[$err_line->{read_id}] = $err_line->{pos};
+    $self->{nb_errors}++;
+  }
 }
 
 =head2 isStranded
@@ -115,6 +128,17 @@ Return the number of reads in the simulated data
 sub nbReads {
   my $self = shift;
   return $self->{nb_reads};
+}
+
+=head2 nbErrors
+
+Return the number of reads in the simulated data
+
+=cut
+
+sub nbErrors {
+  my $self = shift;
+  return $self->{nb_errors};
 }
 
 =head2 nbEvents($type)
@@ -143,7 +167,8 @@ Given a read_name, this method return the read id (from 0 to nb_reads).
 sub getReadId {
   my $self = shift;
   my $read_name = shift;
-  return $self->{read_ids}->{$read_name};
+  my $read_id = $read_name =~ /^\d+$/? $read_name : $self->getReadId($read_name);
+  return $read_id;
 }
 
 =head2 getEvents($type)
@@ -207,7 +232,7 @@ sub getBedLine {
 
   # concert read name into a read id
   # If the read_name is already the read_id we use it directly
-  my $read_id = $read_name =~ /^\d+$/? $read_name : $self->getReadId($read_name);
+  my $read_id = $self->getReadId($read_name);
 
   # Get the seek position of this read in the bed file
   my $seek_pos = $self->{bed_seek_pos}[$read_id];
@@ -278,6 +303,27 @@ sub isGoodAlignment {
     }
   } else {
     warn "There is a problem with the read $ref_name";
+    return 0;
+  }
+}
+
+=head2 isTrueError 
+
+=cut
+
+sub isTrueError {
+  my $self = shift;
+  my ($read_name, $pos) = @_;
+  my $read_id = $self->getReadId($read_name);
+  if(defined $self->{err_pos}[$read_id]) {
+    if(abs($self->{err_pos}[$read_id] - $pos) <= $CracTools::BenchCT::Const::THRESHOLD_ERR) {
+      return 1;
+    } else {
+      print STDERR $self->{err_pos}[$read_id]."\t".$pos."\n";
+      return 0;
+    }
+  } else {
+    carp "Unknown read $read_name\n",
     return 0;
   }
 }
@@ -363,6 +409,16 @@ sub parseInfoLine {
     length    => $length,
     mutation  => $mutation,
     tag_ids   => \@tag_ids,
+  };
+}
+
+sub parseErrLine {
+  my $line = shift;
+  my %args = @_;
+  my ($read_id,$pos) = split(/\s+/,$line);
+  return {
+    read_id => $read_id,
+    pos     => $pos,
   };
 }
 

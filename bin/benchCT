@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use CracTools::BenchCT::Checker;
-use CracTools::BenchCT::Analyzer::SAM;
+use CracTools::BenchCT::Analyzer::SAM::Crac;
 use CracTools::BenchCT::Analyzer::VCF;
 use CracTools::BenchCT::Analyzer::BED::Junction;
 use Getopt::Long qw(:config auto_version); # Get options
@@ -46,14 +46,18 @@ my $checker = CracTools::BenchCT::Checker->new(info_file => $info_file,
 
 if(defined $sam_file) {
 
-  my $sam_analyzer = CracTools::BenchCT::Analyzer::SAM->new(
+  my $sam_analyzer = CracTools::BenchCT::Analyzer::SAM::Crac->new(
     checker => $checker,
     check_reads_mapping => 1,
+    check_errors => 1,
     file => $sam_file,
   );
 
   print "# MAPPING\n";
   $sam_analyzer->mappingStats->print(\*STDOUT);
+
+  print "# ERRORS\n";
+  $sam_analyzer->errorsStats->print(\*STDOUT);
 
 }
 

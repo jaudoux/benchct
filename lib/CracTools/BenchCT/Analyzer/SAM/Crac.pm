@@ -9,24 +9,28 @@ use parent 'CracTools::BenchCT::Analyzer::SAM';
 
 =cut
 
-sub canCheckSnps {
+sub canCheckErrors {
   my $self = shift;
   return 1;
 }
 
-sub _checkSnps {
+sub _checkErrors {
   my $self = shift;
   my $sam_line = shift;
 
-  my @snps = @{$sam_line->events('SNP')};
-  foreach my $snp (@snps) {
-    if($self->checker->isTrueSnp($snp->{loc}->{chr},$snp->{loc}->{pos})) {
-      $self->snpsStats->addTruePositive(); 
+  my @errors = @{$sam_line->events('Error')};
+  foreach my $err (@errors) {
+    next if $err->{type} =~ /Sub/i;
+    my $pos = $err->{pos};
+    if($sam_line->isFlagged($CracTools::SAMReader::SAMline::flags{REVERSE_COMPLEMENTED})) {
+      $pos = length($sam_line->seq) - $pos;
+    }
+    if($self->checker->isTrueError($sam_line->qname,$pos)) {
+      $self->errorsStats->addTruePositive(); 
     } else {
-      $self->snpsStats->addFalsePositive(); 
+      $self->errorsStats->addFalsePositive(); 
     }
   }
-
 }
 
 sub _processLine {
@@ -35,7 +39,7 @@ sub _processLine {
   $self->SUPER::_processLine(@_);
   my $sam_line = shift;
   # Add a special treatment for snps if we have a snpsStats object
-  $self->_checkSnps($sam_line) if defined $self->snpsStats;
+  $self->_checkErrors($sam_line) if defined $self->errorsStats;
 }
 
 1;

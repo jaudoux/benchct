@@ -24,6 +24,11 @@ sub new {
   }
 
   # If we are looking at reads alignement
+  if($args{check_errors} && $self->canCheckErrors) {
+    $self->{errors_stats} = CracTools::BenchCT::Stats->new(nb_elements => $self->checker->nbErrors());
+  }
+
+  # If we are looking at reads alignement
   if($args{check_snps} && $self->canCheckSnps) {
     $self->{snps_stats} = CracTools::BenchCT::Stats->new(nb_elements => $self->checker->nbEvents('snp'));
   }
@@ -62,6 +67,11 @@ sub canCheckMapping {
   return 0;
 }
 
+sub canCheckErrors {
+  my $self = shift;
+  return 0;
+}
+
 sub canCheckSnps {
   my $self = shift;
   return 0;
@@ -85,6 +95,11 @@ sub canCheckSplices {
 sub mappingStats {
   my $self = shift;
   return $self->{mapping_stats};
+}
+
+sub errorsStats {
+  my $self = shift;
+  return $self->{errors_stats};
 }
 
 sub snpsStats {
