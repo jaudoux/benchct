@@ -12,36 +12,43 @@ use Pod::Usage;   # Printing pod documentation in terminal
 
 
 my ($help,$man);
-my ($info_file,$bed_file,$err_file,$sam_file,$junction_bed_file,$vcf_file);
+my ($info_file,$bed_file,$gs_junction_bed,$gs_chimera_tsv,$err_file,$sam_file,$junction_bed_file,$chimera_tsv_file,$vcf_file,$crac_index_conf);
 my @analyzers = ("toto");
 
-GetOptions( "i|info-file=s"  => \$info_file,
-            "b|bed-file=s"   => \$bed_file,
-            "e|error-file=s" => \$err_file,
-            "s|sam=s"        => \$sam_file,
-            "junction-bed=s" => \$junction_bed_file,
-            "vcf=s"          => \$vcf_file,
-            "man"            => \$man,
-            "help"           => \$help,
+GetOptions( "i|gs-info=s"       => \$info_file,
+            "b|gs-bed=s"        => \$bed_file,
+            "j|gs-junctions=s"  => \$gs_junction_bed,
+            "c|gs-chimeras=s"   => \$gs_chimera_tsv,
+            "e|gs-errors=s"     => \$err_file,
+            "s|sam=s"           => \$sam_file,
+            "junction-bed=s"    => \$junction_bed_file,
+            "chimera-tsv=s"     => \$chimera_tsv_file,
+            "vcf=s"             => \$vcf_file,
+            "crac-index-conf=s" => \$crac_index_conf,
+            "man"               => \$man,
+            "help"              => \$help,
           ) or pod2usage(-verbose => 1);
 
 pod2usage(-verbose => 1)  if ($help);
 pod2usage(-verbose => 2)  if ($man);
 
 # Check mandatory arguments
-if(#!defined $info_file || !defined $err_file || 
-  !defined $bed_file) {
-  print STDERR "Missing mandatory argument(s): ";
-  print STDERR "info_file " unless defined $info_file;
-  print STDERR "err_file " unless defined $err_file;
-  print STDERR "bed_file " unless defined $bed_file;
-  print STDERR "\n";
-  pod2usage(-verbose => 1);
-}
+#if(#!defined $info_file || !defined $err_file || 
+#  !defined $bed_file) {
+#  print STDERR "Missing mandatory argument(s): ";
+#  print STDERR "info_file " unless defined $info_file;
+#  print STDERR "err_file " unless defined $err_file;
+#  print STDERR "bed_file " unless defined $bed_file;
+#  print STDERR "\n";
+#  pod2usage(-verbose => 1);
+#}
 
 my $checker = CracTools::BenchCT::Checker->new(info_file => $info_file,
                                       bed_file  => $bed_file,
                                       err_file  => $err_file,
+                                      crac_index_conf => $crac_index_conf,
+                                      junction_bed_file => $gs_junction_bed,
+                                      chimera_tsv_file => $gs_chimera_tsv,
                                       );
 
 if(defined $sam_file) {

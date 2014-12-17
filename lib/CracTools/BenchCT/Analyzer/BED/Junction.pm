@@ -6,6 +6,7 @@ package CracTools::BenchCT::Analyzer::BED::Junction;
 use parent 'CracTools::BenchCT::Analyzer::BED';
 
 use CracTools::Utils;
+#use Data::Dumper;
 
 sub canCheckSplices {
   my $self = shift;
@@ -28,6 +29,7 @@ sub _processLine {
     if($self->checker->isTrueSplice($chr,$start,$length,$strand)) {
       $self->splicesStats->addTruePositive();
     } else {
+      #print STDERR Dumper($bed_line);
       $self->splicesStats->addFalsePositive();
     }
   }

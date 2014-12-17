@@ -54,7 +54,7 @@ sub isTrueMutation {
   my @mutations = @{$self->intervalQuery->fetchByRegion($chr,$pos - $self->threshold,$pos + $self->threshold)};
   # We return true if we have found a matching mutation that have the same length
   foreach my $mutation (@mutations) {
-    if($mutation == $length) {
+    if(abs($mutation - $length) < 1) {
       return 1;
     }
   }
