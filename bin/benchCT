@@ -3,28 +3,20 @@
 use strict;
 use warnings;
 
+use YAML::XS qw/LoadFile/;
+
+use CracTools::BenchCT;
+use CracTools::BenchCT::Const;
 use CracTools::BenchCT::Checker;
 use CracTools::BenchCT::Analyzer::SAM::Crac;
 use CracTools::BenchCT::Analyzer::VCF;
 use CracTools::BenchCT::Analyzer::BED::Junction;
 use Getopt::Long qw(:config auto_version); # Get options
 use Pod::Usage;   # Printing pod documentation in terminal
+use Data::Dumper;
 
-
-my ($help,$man);
-my ($info_file,$bed_file,$gs_junction_bed,$gs_chimera_tsv,$err_file,$sam_file,$junction_bed_file,$chimera_tsv_file,$vcf_file,$crac_index_conf);
-my @analyzers = ("toto");
-
-GetOptions( "i|gs-info=s"       => \$info_file,
-            "b|gs-bed=s"        => \$bed_file,
-            "j|gs-junctions=s"  => \$gs_junction_bed,
-            "c|gs-chimeras=s"   => \$gs_chimera_tsv,
-            "e|gs-errors=s"     => \$err_file,
-            "s|sam=s"           => \$sam_file,
-            "junction-bed=s"    => \$junction_bed_file,
-            "chimera-tsv=s"     => \$chimera_tsv_file,
-            "vcf=s"             => \$vcf_file,
-            "crac-index-conf=s" => \$crac_index_conf,
+my ($help,$man,$verbose);
+GetOptions( "v|verbose"         => \$verbose,
             "man"               => \$man,
             "help"              => \$help,
           ) or pod2usage(-verbose => 1);
@@ -32,75 +24,94 @@ GetOptions( "i|gs-info=s"       => \$info_file,
 pod2usage(-verbose => 1)  if ($help);
 pod2usage(-verbose => 2)  if ($man);
 
-# Check mandatory arguments
-#if(#!defined $info_file || !defined $err_file || 
-#  !defined $bed_file) {
-#  print STDERR "Missing mandatory argument(s): ";
-#  print STDERR "info_file " unless defined $info_file;
-#  print STDERR "err_file " unless defined $err_file;
-#  print STDERR "bed_file " unless defined $bed_file;
-#  print STDERR "\n";
-#  pod2usage(-verbose => 1);
-#}
+my $config_file = shift @ARGV;
 
-my $checker = CracTools::BenchCT::Checker->new(info_file => $info_file,
-                                      bed_file  => $bed_file,
-                                      err_file  => $err_file,
-                                      crac_index_conf => $crac_index_conf,
-                                      junction_bed_file => $gs_junction_bed,
-                                      chimera_tsv_file => $gs_chimera_tsv,
-                                      );
+my $config = LoadFile($config_file);
+#print Dumper($config);
 
-if(defined $sam_file) {
+my @stat_types = defined $config->{output}->{statistics}? @{$config->{output}->{statistics}} : ("Accuracy","Sensitivity");
 
-  my $sam_analyzer = CracTools::BenchCT::Analyzer::SAM::Crac->new(
-    checker => $checker,
-    check_reads_mapping => 1,
-    check_errors => 1,
-    file => $sam_file,
-  );
+# Loading constants
+$CracTools::BenchCT::Const::NB_DECIMALS = $config->{output}->{nb_decimals} if defined $config->{output}->{nb_decimals};
+my $threshold_mapping = $config->{checker}->{thresholds}->{MAPPING};
+my $threshold_snp     = $config->{checker}->{thresholds}->{SNP};
+my $threshold_ins     = $config->{checker}->{thresholds}->{INSERTION};
+my $threshold_del     = $config->{checker}->{thresholds}->{DELELETION};
+my $threshold_chimera = $config->{checker}->{thresholds}->{CHIMERA};
+my $threshold_err     = $config->{checker}->{thresholds}->{ERROR};
+my $threshold_splice  = $config->{checker}->{thresholds}->{SPLICE};
+$CracTools::BenchCT::Const::THRESHOLD_MAPPING = $threshold_mapping if defined $threshold_mapping;
+$CracTools::BenchCT::Const::THRESHOLD_SNP     = $threshold_snp     if defined $threshold_snp;
+$CracTools::BenchCT::Const::THRESHOLD_INS     = $threshold_ins     if defined $threshold_ins;
+$CracTools::BenchCT::Const::THRESHOLD_DEL     = $threshold_del     if defined $threshold_del;
+$CracTools::BenchCT::Const::THRESHOLD_CHIMERA = $threshold_chimera if defined $threshold_chimera;
+$CracTools::BenchCT::Const::THRESHOLD_ERR     = $threshold_err     if defined $threshold_err;
+$CracTools::BenchCT::Const::THRESHOLD_SPLICE  = $threshold_splice  if defined $threshold_splice;
 
-  print "# MAPPING\n";
-  $sam_analyzer->mappingStats->print(\*STDOUT);
+# Create the checker
+my $checker = CracTools::BenchCT::Checker->new(
+  info_file           => $config->{checker}->{files}->{mutations}, # contains mutations
+  bed_file            => $config->{checker}->{files}->{mapping}, # contains alignements
+  err_file            => $config->{checker}->{files}->{errors}, # contains errors
+  junction_bed_file   => $config->{checker}->{files}->{splices},
+  chimera_tsv_file    => $config->{checker}->{files}->{chimeras},
+  crac_index_conf     => $config->{checker}->{files}->{genome_conf},
+  verbose             => $verbose,
+);
 
-  print "# ERRORS\n";
-  $sam_analyzer->errorsStats->print(\*STDOUT);
-
+# create softwares
+my %softwares;
+my %event_types;
+foreach my $soft (@{$config->{softwares}}) {
+  my %stats;
+  foreach my $file (@{$soft->{files}}) {
+    print STDERR "[$soft->{name}] Reading $file->{name} file\n" if $verbose;
+    my $analyzer_name = 'CracTools::BenchCT::Analyzer::'.$file->{type};
+    my $analyzer = $analyzer_name->new(
+      file => $file->{name},
+      checker => $checker,
+      check => $file->{check},
+    );
+    foreach my $check_type (@{$analyzer->allCheckedEvents}) {
+      $event_types{$check_type} = 1;
+      if(defined $stats{$check_type}) {
+        print STDERR "Cannot check $check_type with file $file->{name}, another files has already process this information\n";
+      } else {
+        $stats{$check_type} = $analyzer->getStats($check_type);
+      }
+    }
+  }
+  $softwares{$soft->{name}} = \%stats;
 }
 
-if(defined $junction_bed_file) {
-
-  my $junction_bed_analyzer = CracTools::BenchCT::Analyzer::BED::Junction->new(
-    checker => $checker,
-    check_splices => 1,
-    file => $junction_bed_file,
-  );
-
-  print "# SPLICES\n";
-  $junction_bed_analyzer->splicesStats->print(\*STDOUT);
+# Print output
+my @event_types = sort keys %event_types;
+my @cols = map { my $x = $_; map $x."::".$_, @stat_types } @event_types;
+print "#softwares\t",join("\t",@cols),"\n";
+foreach my $soft (keys %softwares) {
+  my @output = ($soft);
+  foreach my $event_type (@event_types) {
+    my $value;
+    foreach my $stat_type (@stat_types) {
+      if(defined $softwares{$soft}->{$event_type}) {
+        $value = $softwares{$soft}->{$event_type}->getAccuracy if $stat_type =~ /accuracy/i;
+        $value = $softwares{$soft}->{$event_type}->getSensitivity if $stat_type =~ /sensitivity/i;
+        $value = $softwares{$soft}->{$event_type}->getGain if $stat_type =~ /sain/i;
+        $value = $softwares{$soft}->{$event_type}->nbTruePositives if $stat_type =~ /rrue-positives/i;
+        $value = $softwares{$soft}->{$event_type}->nbFalsePositives if $stat_type =~ /false-positives/i;
+        $value = $softwares{$soft}->{$event_type}->nbFalseNegatives if $stat_type =~ /false-negatives/i;
+        $value = sprintf("%.".$CracTools::BenchCT::Const::NB_DECIMALS."f", $value);
+      } else {
+        $value = 'N/A';
+      }
+      push @output, $value;
+    }
+  }
+  print join("\t",@output),"\n";
 }
 
-if(defined $vcf_file) {
+#my $benchCT = CracTools::BenchCT->new(
+#  checker => $checker,
+#);
 
-  my $vcf_analyzer = CracTools::BenchCT::Analyzer::VCF->new(
-    checker => $checker,
-    check_snps => 1,
-    check_deletions => 1,
-    check_insertions => 1,
-    file => $vcf_file,
-  );
-
-  print "# SNPS\n";
-  $vcf_analyzer->snpsStats->print(\*STDOUT);
-  print "# INSERTIONS\n";
-  $vcf_analyzer->insertionsStats->print(\*STDOUT);
-  print "# DELTIONS\n";
-  $vcf_analyzer->deletionsStats->print(\*STDOUT);
-}
-
-# Check if thers is analyzers
-if(@analyzers == 0) {
-  print STDERR "You should specify one tool results at least\n";
-  pod2usage(-verbose => 1);
-}
 

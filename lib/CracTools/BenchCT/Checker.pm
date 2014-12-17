@@ -37,12 +37,29 @@ sub new {
     bed_seek_pos        => [],
     nb_reads            => 0,
     err_seek_pos        => [],
+    verbose             => defined $args{verbose}? $args{verbose} : 0,
     events              => {
-      snp       => CracTools::BenchCT::Events::SNP->new( threshold => $CracTools::BenchCT::Const::THRESHOLD_SNP, crac_index_conf => $args{crac_index_conf}),
-      insertion => CracTools::BenchCT::Events::Mutation->new( threshold => $CracTools::BenchCT::Const::THRESHOLD_INS ),
-      deletion  => CracTools::BenchCT::Events::Mutation->new( threshold => $CracTools::BenchCT::Const::THRESHOLD_DEL ),
-      splice    => CracTools::BenchCT::Events::Splice->new( threshold => $CracTools::BenchCT::Const::THRESHOLD_SPLICE ),
-      chimera   => CracTools::BenchCT::Events::Chimera->new( threshold => $CracTools::BenchCT::Const::THRESHOLD_CHIMERA ),
+      snp       => CracTools::BenchCT::Events::SNP->new(
+        verbose => $args{verbose},
+        threshold => $CracTools::BenchCT::Const::THRESHOLD_SNP,
+        crac_index_conf => $args{crac_index_conf},
+      ),
+      insertion => CracTools::BenchCT::Events::Mutation->new(
+        verbose => $args{verbose},
+        threshold => $CracTools::BenchCT::Const::THRESHOLD_INS,
+      ),
+      deletion  => CracTools::BenchCT::Events::Mutation->new(
+        verbose => $args{verbose},
+        threshold => $CracTools::BenchCT::Const::THRESHOLD_DEL,
+      ),
+      splice    => CracTools::BenchCT::Events::Splice->new(
+        verbose => $args{verbose},
+        threshold => $CracTools::BenchCT::Const::THRESHOLD_SPLICE,
+      ),
+      chimera   => CracTools::BenchCT::Events::Chimera->new(
+        verbose => $args{verbose},
+        threshold => $CracTools::BenchCT::Const::THRESHOLD_CHIMERA,
+      ),
     },
   }, $class;
 
@@ -56,10 +73,11 @@ sub _init {
 
   # Read bed file for alignements
   if(defined $self->{bed_file}) {
+    print STDERR "[checker] Reading bed file\n" if $self->verbose;
     
     # First we read the bed files and we record seek positions of each read
     my $bed_it = CracTools::Utils::getFileIterator(file =>$self->{bed_file},
-      parsing_method => \&CracTools::BenchCT::Utils::parseGSBedLine,
+      parsing_method => \&CracTools::BenchCT::Utils::parseGSBedLineLite,
     );
 
     my $id = 0;
@@ -68,27 +86,6 @@ sub _init {
       $self->{read_ids}->{$bed_line->{name}} = $id;
       # Set seek pos of each bed alignement according to the read id
       $self->{bed_seek_pos}[$id] = $bed_line->{seek_pos};
-      # Loop over blocks to find splices and chimeras
-      for(my $i=1; $i < @{$bed_line->{blocks}}; $i++) {
-
-        # Check that the splice is not chimeric
-        next if $bed_line->{blocks}[$i-1]->{chr} ne $bed_line->{blocks}[$i]->{chr};
-        next if $bed_line->{blocks}[$i-1]->{strand} ne $bed_line->{blocks}[$i]->{strand};
-        next if $bed_line->{blocks}[$i-1]->{ref_end} >= $bed_line->{blocks}[$i]->{ref_start};
-        #next if $bed_line->{blocks}[$i]->{strand} eq '+' && $bed_line->{blocks}[$i-1]->{ref_end} > $bed_line->{blocks}[$i]->{ref_start};
-        #next if $bed_line->{blocks}[$i]->{strand} eq '-' && $bed_line->{blocks}[$i-1]->{ref_end} < $bed_line->{blocks}[$i]->{ref_start};
-
-        # Extract splice coordinates
-        my $chr = $bed_line->{blocks}[$i]->{chr};
-        my $start = $bed_line->{blocks}[$i-1]->{ref_end};
-        my $end = $bed_line->{blocks}[$i]->{ref_start};
-        my $length = $end - $start;
-        my $strand = $self->isStranded? $bed_line->{blocks}[$i]->{strand} : 1;
-
-        #print Dumper($bed_line) if $length <= 0;
-
-        $self->getEvents('splice')->addSplice($chr,$start,$length,$strand);
-      }
       $id++;
     }
 
@@ -97,6 +94,7 @@ sub _init {
 
   # Read junction bed
   if(defined $self->{junction_bed_file}) {
+    print STDERR "[checker] Reading junction bed file\n" if $self->verbose;
     # First we read the bed files and we record seek positions of each read
     my $bed_it = CracTools::Utils::bedFileIterator($self->{junction_bed_file});
 
@@ -108,6 +106,7 @@ sub _init {
 
   # Read chimera file
   if(defined $self->{chimera_tsv_file}) {
+    print STDERR "[checker] Reading chimera file\n" if $self->verbose;
     # First we read the bed files and we record seek positions of each read
     my $chim_it = CracTools::Utils::getFileIterator(file =>$self->{chimera_tsv_file},
       parsing_method => \&CracTools::BenchCT::Utils::parseChimeraLine,
@@ -126,7 +125,7 @@ sub _init {
 
   # Read info file (snps, indels)
   if(defined $self->{info_file}) {
-
+    print STDERR "[checker] Reading info file\n" if $self->verbose;
     # Secondly we read the info file to register mutations
     my $info_it = CracTools::Utils::getFileIterator(file =>$self->{info_file},
       parsing_method => \&CracTools::BenchCT::Utils::parseInfoLine, # we use our own parsing method
@@ -147,7 +146,7 @@ sub _init {
 
   # Read errors
   if(defined $self->{err_file}) {
-
+    print STDERR "[checker] Reading error file\n" if $self->verbose;
     # Now we read the error file
     my $err_it = CracTools::Utils::getFileIterator(file =>$self->{err_file},
       parsing_method => \&CracTools::BenchCT::Utils::parseErrLine,
@@ -187,6 +186,15 @@ Return the number of reads in the simulated data
 sub nbReads {
   my $self = shift;
   return $self->{nb_reads};
+}
+
+=head2 verbose 
+
+=cut
+
+sub verbose {
+  my $self = shift;
+  return $self->{verbose};
 }
 
 =head2 nbErrors
@@ -317,7 +325,7 @@ sub getBedLine {
     my $line = CracTools::Utils::getLineFromSeekPos($self->getBedFileHandle,$seek_pos);
 
     # Parse this line in order to have a nice little hash
-    return parseGSBedLine($line);
+    return CracTools::BenchCT::Utils::parseGSBedLine($line);
 
   } else {
     carp "No seek_pos for read: $read_name in the bed file";
@@ -350,13 +358,13 @@ sub getErrLines {
     # Retrieve the whole line in the bed file
     my $line = CracTools::Utils::getLineFromSeekPos($fh,$seek_pos);
     # Parse this line in order to have a nice little hash
-    push(@err_lines,parseErrLine($line));
+    push(@err_lines,CracTools::BenchCT::Utils::parseErrLine($line));
 
     # Look at next lines, if they belong to the same read
     my $found_error = 1;
     while($found_error) {
       my $next_line = <$fh>;
-      my $err_line = parseErrLine($next_line);
+      my $err_line = CracTools::BenchCT::Utils::parseErrLine($next_line);
       if($err_line->{read_id} == $read_id) {
         push(@err_lines,$err_line);
       } else {

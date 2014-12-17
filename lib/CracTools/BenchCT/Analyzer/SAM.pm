@@ -8,9 +8,13 @@ use parent 'CracTools::BenchCT::Analyzer';
 use CracTools::SAMReader;
 use CracTools::SAMReader::SAMline;
 
-sub canCheckMapping {
+sub canCheck {
   my $self = shift;
-  return 1;
+  my $event_type = shift;
+  if($self->SUPER::canCheck($event_type) ||  $event_type eq 'mapping') {
+    return 1;
+  }
+  return 0;
 }
 
 sub _init {
@@ -49,9 +53,9 @@ sub _checkMapping {
 
       # -1 because checker is 0 based
       if($self->checker->isGoodAlignment($sam_line->qname,$chr,$pos_start,$sam_line->pos-1,$strand)) {
-        $self->mappingStats->addTruePositive(); 
+        $self->getStats('mapping')->addTruePositive(); 
       } else {
-        $self->mappingStats->addFalsePositive(); 
+        $self->getStats('mapping')->addFalsePositive(); 
         #print $sam_line->line,"\n";
       }
     } else {
@@ -65,7 +69,7 @@ sub _checkMapping {
 sub _processLine {
   my $self = shift;
   my $sam_line = shift;
-  $self->_checkMapping($sam_line) if defined $self->mappingStats;
+  $self->_checkMapping($sam_line) if defined $self->getStats('mapping');
 }
 
 1;

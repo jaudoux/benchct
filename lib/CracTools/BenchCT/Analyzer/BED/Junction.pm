@@ -8,9 +8,13 @@ use parent 'CracTools::BenchCT::Analyzer::BED';
 use CracTools::Utils;
 #use Data::Dumper;
 
-sub canCheckSplices {
+sub canCheck {
   my $self = shift;
-  return 1;
+  my $event_type = shift;
+  if($self->SUPER::canCheck($event_type) ||  $event_type eq 'splice') {
+    return 1;
+  }
+  return 0;
 }
 
 sub _processLine {
@@ -27,10 +31,10 @@ sub _processLine {
     my $length = $end - $start;
 
     if($self->checker->isTrueSplice($chr,$start,$length,$strand)) {
-      $self->splicesStats->addTruePositive();
+      $self->getStats('splice')->addTruePositive();
     } else {
       #print STDERR Dumper($bed_line);
-      $self->splicesStats->addFalsePositive();
+      $self->getStats('splice')->addFalsePositive();
     }
   }
 }

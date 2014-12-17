@@ -1,0 +1,17 @@
+# Libraries
+- Verify that All data in CracTools::BenchCT::Checker are 0 based
+- Verify that analyzers are aware of the 0-based specificity of the checker
+- Create a library that contains all checked events:
+  - mapping
+  - error
+  - snp
+  - insertion
+  - deletion
+
+# Binary
+- generates multiple statistics ouput
+  - 1 for each software
+  - 1 for each cause
+
+# BUGS
+- There is a problem with CRAC insertions there are 1-based instead of 0-based

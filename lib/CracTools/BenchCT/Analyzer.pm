@@ -4,6 +4,18 @@ package CracTools::BenchCT::Analyzer;
 # ABSTRACT: Analyze results from a software experiment over the simulated data handled by BenchCT
 #
 use CracTools::BenchCT::Stats;
+use Carp;
+
+our %check_events = (
+  "insertion"  => 0,
+  "mapping"    => 0,
+  "error"      => 0,
+  "snp"        => 0,
+  "splice"     => 0,
+  "deletion"   => 0,
+  "insertion"  => 0,
+  "chimera"    => 0,
+);
 
 =head2 new
 
@@ -17,35 +29,28 @@ sub new {
     checker => $args{checker},
   }, $class;
 
+  my @check_types;
 
-  # If we are looking at reads alignement
-  if($args{check_reads_mapping} && $self->canCheckMapping) {
-    $self->{mapping_stats} = CracTools::BenchCT::Stats->new(nb_elements => $self->checker->nbReads());
+  if($args{check} eq 'all') {
+    push @check_types, @{$self->allCheckableEvents};
+  } else {
+    push @check_types, @{$args{check}};
   }
 
-  # If we are looking at reads alignement
-  if($args{check_errors} && $self->canCheckErrors) {
-    $self->{errors_stats} = CracTools::BenchCT::Stats->new(nb_elements => $self->checker->nbErrors());
-  }
-
-  # If we are looking at reads alignement
-  if($args{check_snps} && $self->canCheckSnps) {
-    $self->{snps_stats} = CracTools::BenchCT::Stats->new(nb_elements => $self->checker->nbEvents('snp'));
-  }
-
-  # If we are looking at reads alignement
-  if($args{check_splices} && $self->canCheckSplices) {
-    $self->{splices_stats} = CracTools::BenchCT::Stats->new(nb_elements => $self->checker->nbEvents('splice'));
-  }
-
-  # If we are looking at reads alignement
-  if($args{check_deletions} && $self->canCheckDeletions) {
-    $self->{deletions_stats} = CracTools::BenchCT::Stats->new(nb_elements => $self->checker->nbEvents('deletion'));
-  }
-
-  # If we are looking at reads alignement
-  if($args{check_insertions} && $self->canCheckInsertions) {
-    $self->{insertions_stats} = CracTools::BenchCT::Stats->new(nb_elements => $self->checker->nbEvents('insertion'));
+  foreach my $check_type (@check_types) {
+    if($check_type eq 'mapping' && $self->canCheck($check_type)) {
+      $self->addStats($check_type,
+        CracTools::BenchCT::Stats->new(nb_elements => $self->checker->nbReads())
+      );
+    } elsif($check_type eq 'error' && $self->canCheck($check_type)) {
+      $self->addStats($check_type,
+        CracTools::BenchCT::Stats->new(nb_elements => $self->checker->nbErrors())
+      );
+    } elsif($check_type =~ /^(snp|splice|deletion|insertion)$/ && $self->canCheck($check_type)) {
+      $self->addStats($check_type,
+        CracTools::BenchCT::Stats->new(nb_elements => $self->checker->nbEvents($check_type))
+      );
+    }
   }
 
   $self->_init(@_);
@@ -62,66 +67,47 @@ sub checker {
   return $self->{checker};
 }
 
-sub canCheckMapping {
+sub canCheck {
   my $self = shift;
-  return 0;
+  my $event_type = shift;
+  if(defined $check_events{$event_type}) {
+    return $check_events{$event_type};
+  } else {
+    carp "Unkown event: $event_type";
+  }
 }
 
-sub canCheckErrors {
+sub allCheckableEvents {
   my $self = shift;
-  return 0;
+  my @checkable_events;
+  foreach my $event_type (keys %check_events) {
+    if($self->canCheck($event_type)) {
+      push(@checkable_events,$event_type);
+    }
+  }
+  return \@checkable_events;
 }
 
-sub canCheckSnps {
+sub allCheckedEvents {
   my $self = shift;
-  return 0;
+  my @checked_events;
+  foreach my $event_type (keys %check_events) {
+    push(@checked_events,$event_type) if defined $self->getStats($event_type);
+  }
+  return \@checked_events;
 }
 
-sub canCheckInsertions {
+sub getStats {
   my $self = shift;
-  return 0;
+  my $event_type = shift;
+  return $self->{stats}->{$event_type};
 }
 
-sub canCheckDeletions {
+sub addStats {
   my $self = shift;
-  return 0;
+  my $event_type = shift;
+  my $stats = shift;
+  $self->{stats}->{$event_type} = $stats;
 }
-
-sub canCheckSplices {
-  my $self = shift;
-  return 0;
-}
-
-sub mappingStats {
-  my $self = shift;
-  return $self->{mapping_stats};
-}
-
-sub errorsStats {
-  my $self = shift;
-  return $self->{errors_stats};
-}
-
-sub snpsStats {
-  my $self = shift;
-  return $self->{snps_stats};
-}
-
-sub deletionsStats {
-  my $self = shift;
-  return $self->{deletions_stats};
-}
-
-sub insertionsStats {
-  my $self = shift;
-  return $self->{insertions_stats};
-}
-
-sub splicesStats {
-  my $self = shift;
-  return $self->{splices_stats};
-}
-
-
 
 1;

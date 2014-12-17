@@ -7,32 +7,18 @@ use parent 'CracTools::BenchCT::Analyzer';
 
 use CracTools::Utils;
 
-
-sub canCheckSnps {
+sub canCheck {
   my $self = shift;
-  return 1;
-}
-
-sub canCheckInsertions {
-  my $self = shift;
-  return 1;
-}
-
-sub canCheckDeletions {
-  my $self = shift;
-  return 1;
+  my $event_type = shift;
+  if($self->SUPER::canCheck($event_type) ||  $event_type =~ /^(snp|insertion|deletion)$/) {
+    return 1;
+  }
+  return 0;
 }
 
 sub _init {
   my $self = shift;
   my %args = @_;
-
-  my %stats_objects = ( snp => $self->snpsStats,
-    deletion => $self->deletionsStats,
-    insertion => $self->insertionsStats,
-  );
-
-  $self->{stats_objects} = \%stats_objects;
 
   my $vcf_file = $args{file};
   my $vcf_it = CracTools::Utils::vcfFileIterator($vcf_file);
@@ -40,12 +26,6 @@ sub _init {
     # This is a hook line for subclasses
     $self->_processLine($vcf_line);
   }
-}
-
-sub getStats {
-  my $self = shift;
-  my $type = shift;
-  return $self->{stats_objects}->{$type};
 }
 
 # We do nothing here... childs will.
@@ -80,10 +60,12 @@ sub _processLine {
     $pos--;
 
     # Now we check the validity of the event
-    if($self->checker->isTrueMutation($type,$vcf_line->{chr},$pos,$length)) {
-      $self->getStats($type)->addTruePositive();
-    } else {
-      $self->getStats($type)->addFalsePositive();
+    if(defined $self->getStats($type)) {
+      if($self->checker->isTrueMutation($type,$vcf_line->{chr},$pos,$length)) {
+        $self->getStats($type)->addTruePositive();
+      } else {
+        $self->getStats($type)->addFalsePositive();
+      }
     }
   }
 }

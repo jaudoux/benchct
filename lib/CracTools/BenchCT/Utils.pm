@@ -5,6 +5,22 @@ package CracTools::BenchCT::Utils;
 
 =head1 PARSING SUBROUTINES
 
+=head2 parseGSBedLineLite
+
+=cut
+
+sub parseGSBedLineLite {
+  my $line = shift;
+  my($chr,$start,$end,$name) = split("\t",$line,5);
+  return {
+    chr => $chr,
+    start => $start,
+    end => $end,
+    name => $name
+  };
+}
+
+
 =head2 parseGSBedLine
 
 This is a special parsing method for Genome Simulator bed that can contain chimeras

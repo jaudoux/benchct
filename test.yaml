@@ -1,0 +1,34 @@
+---
+checker:
+    files:
+        mutations:    /data/reads/Flux/GRCh37-mutated-200-simulated-errors-48M.info
+        #mapping:      /data/reads/Flux/GRCh37-mutated-200-simulated-errors-48M.NotMutatedBed
+        splices:      /data/reads/Flux/GRCh37-mutated-200-simulated-errors-48M-junctions.bed
+        #chimeras:    /data/reads/Flux/GRCh37-mutated-200-simulated-errors-48M-chimeras.tsv
+        #errors:       /data/reads/Flux/GRCh37-mutated-200-simulated-errors-48M.err
+        genome_conf:  /data/indexes/crac/GRCh37.conf
+#    thresholds:
+#        MAPPING:    5
+#        SNP:        5
+#        INSERTION:  5
+#        DELETION:   5
+#        CHIMERA:    20
+#        ERROR:      5
+#        SPLICE:     5
+softwares:
+    - name: crac-v2
+      files:
+        - name: /data/storage/Mapping/r-crac/GRCh37/1.9.11/CRAC-GRCh37-mutated-200-simulated-errors-48M-22-no-ambiguity-junctions.bed
+          type: BED::Junction
+          check: all
+        - name: /data/storage/Mapping/r-crac/GRCh37/1.9.11/CRAC-GRCh37-mutated-200-simulated-errors-48M-22-no-ambiguity.vcf
+          type: VCF
+          check: all
+        #- name: /data/storage/Mapping/r-crac/GRCh37/1.9.11/CRAC-GRCh37-mutated-200-simulated-errors-48M-22-no-ambiguity.bam
+        #  type: SAM::Crac
+        #  check: all
+output:
+#  statistics:
+#    - sensitivity
+#    - accuracy
+  nb_decimals: 2

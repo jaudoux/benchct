@@ -17,6 +17,7 @@ sub new {
     #interval_query => CracTools::Interval::Query->new(),
     nb_events => 0,
     threshold => $args{threshold},
+    verbose   => defined $args{verbose}? $args{verbose} : 0,
     #event_reads => [],
     #genome_mask => CracTools::GenomeMask->new(),
   }, $class;
@@ -27,6 +28,11 @@ sub new {
 sub threshold {
   my $self = shift;
   return $self->{threshold};
+}
+
+sub verbose {
+  my $self = shift;
+  return $self->{verbose};
 }
 
 =head2 addEvent

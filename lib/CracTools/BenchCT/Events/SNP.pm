@@ -22,7 +22,11 @@ sub new {
 
   my $crac_index_conf = $args{crac_index_conf};
 
-  $self->{genome_mask} = CracTools::GenomeMask->new(crac_index_conf => $crac_index_conf, verbose => 1);
+  print STDERR "[Events::SNP] Creating GenomeMask over the genome\n" if $self->verbose;
+
+  $self->{genome_mask} = CracTools::GenomeMask->new(crac_index_conf => $crac_index_conf,
+    verbose => $self->{verbose},
+  );
   
   return $self;
 }

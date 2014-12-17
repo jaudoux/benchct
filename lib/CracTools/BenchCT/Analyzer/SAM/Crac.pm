@@ -9,9 +9,13 @@ use parent 'CracTools::BenchCT::Analyzer::SAM';
 
 =cut
 
-sub canCheckErrors {
+sub canCheck {
   my $self = shift;
-  return 1;
+  my $event_type = shift;
+  if($self->SUPER::canCheck($event_type) ||  $event_type eq 'error') {
+    return 1;
+  }
+  return 0;
 }
 
 sub _checkErrors {
@@ -26,9 +30,9 @@ sub _checkErrors {
       $pos = length($sam_line->seq) - $pos;
     }
     if($self->checker->isTrueError($sam_line->qname,$pos)) {
-      $self->errorsStats->addTruePositive(); 
+      $self->getStats('error')->addTruePositive(); 
     } else {
-      $self->errorsStats->addFalsePositive(); 
+      $self->getStats('error')->addFalsePositive(); 
     }
   }
 }
@@ -39,7 +43,7 @@ sub _processLine {
   $self->SUPER::_processLine(@_);
   my $sam_line = shift;
   # Add a special treatment for snps if we have a snpsStats object
-  $self->_checkErrors($sam_line) if defined $self->errorsStats;
+  $self->_checkErrors($sam_line) if defined $self->getStats('error');
 }
 
 1;
