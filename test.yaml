@@ -7,14 +7,14 @@ checker:
         #chimeras:    /data/reads/Flux/GRCh37-mutated-200-simulated-errors-48M-chimeras.tsv
         #errors:       /data/reads/Flux/GRCh37-mutated-200-simulated-errors-48M.err
         genome_conf:  /data/indexes/crac/GRCh37.conf
-#    thresholds:
-#        MAPPING:    5
-#        SNP:        5
-#        INSERTION:  5
-#        DELETION:   5
-#        CHIMERA:    20
-#        ERROR:      5
-#        SPLICE:     5
+    thresholds:
+        MAPPING:    5
+        SNP:        5
+        INSERTION:  5
+        DELETION:   5
+        CHIMERA:    20
+        ERROR:      5
+        SPLICE:     0
 softwares:
     - name: crac-v2
       files:
@@ -27,8 +27,20 @@ softwares:
         #- name: /data/storage/Mapping/r-crac/GRCh37/1.9.11/CRAC-GRCh37-mutated-200-simulated-errors-48M-22-no-ambiguity.bam
         #  type: SAM::Crac
         #  check: all
+    - name: tophat2
+      files:  
+        - name: /data/results/CRACV2/perf_test/GRCh37-mutated-200-simulated-errors-48M/tophat_output/junctions.bed
+          type: BED::Junction
+          check: all
+        - name: /data/results/CRACV2/perf_test/GRCh37-mutated-200-simulated-errors-48M/tophat_output/insertions.bed
+          type: BED::Insertion
+          check: all
+        - name: /data/results/CRACV2/perf_test/GRCh37-mutated-200-simulated-errors-48M/tophat_output/deletions.bed
+          type: BED::Deletion
+          check: all
 output:
-#  statistics:
-#    - sensitivity
-#    - accuracy
+  statistics:
+    - sensitivity
+    - accuracy
+    - gain
   nb_decimals: 2

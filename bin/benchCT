@@ -11,9 +11,12 @@ use CracTools::BenchCT::Checker;
 use CracTools::BenchCT::Analyzer::SAM::Crac;
 use CracTools::BenchCT::Analyzer::VCF;
 use CracTools::BenchCT::Analyzer::BED::Junction;
+use CracTools::BenchCT::Analyzer::BED::Insertion;
+use CracTools::BenchCT::Analyzer::BED::Deletion;
 use Getopt::Long qw(:config auto_version); # Get options
 use Pod::Usage;   # Printing pod documentation in terminal
 use Data::Dumper;
+use Carp;
 
 my ($help,$man,$verbose);
 GetOptions( "v|verbose"         => \$verbose,
@@ -67,6 +70,15 @@ foreach my $soft (@{$config->{softwares}}) {
   foreach my $file (@{$soft->{files}}) {
     print STDERR "[$soft->{name}] Reading $file->{name} file\n" if $verbose;
     my $analyzer_name = 'CracTools::BenchCT::Analyzer::'.$file->{type};
+    #eval {
+    #  require $analyzer_name;
+    #  $analyzer_name->import();
+    #  1;
+    #} or do {
+    #  my $error = $@;
+    #  carp "Error: $error";
+    #  carp "Analyzer $analyzer_name not found\n";
+    #};
     my $analyzer = $analyzer_name->new(
       file => $file->{name},
       checker => $checker,
