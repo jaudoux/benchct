@@ -7,12 +7,15 @@ package CracTools::BenchCT::Stats;
 
 =cut
 
+use CracTools::BitVector;
+
 sub new {
   my $class = shift;
   my %args = @_;
 
   my $self = bless {
     nb_elements => $args{nb_elements}, # This is equal to : number of true positives + number of false negatives
+    bitvector => CracTools::BitVector->new($args{nb_elements}),
     true_positives => 0,
     false_positives => 0,
   }, $class;
@@ -22,7 +25,16 @@ sub new {
 
 sub addTruePositive {
   my $self = shift;
-  $self->{true_positives}++;
+  my $id = shift;
+  # If we have already seen this event we do not count it
+  if(defined $id) {
+    if($self->{bitvector}->get($id-1) == 0) {
+      $self->{bitvector}->set($id-1);
+      $self->{true_positives}++;
+    }
+  } else {
+    $self->{true_positives}++;
+  }
 }
 
 sub addFalsePositive {

@@ -20,20 +20,27 @@ sub new {
   # Get args
   my %args = @_;
 
-  my $crac_index_conf = $args{crac_index_conf};
+  #my $crac_index_conf = $args{crac_index_conf};
 
-  print STDERR "[Events::SNP] Creating GenomeMask over the genome\n" if $self->verbose;
+  #print STDERR "[Events::SNP] Creating GenomeMask over the genome\n" if $self->verbose;
 
-  $self->{genome_mask} = CracTools::GenomeMask->new(crac_index_conf => $crac_index_conf,
-    verbose => $self->{verbose},
-  );
+  #$self->{genome_mask} = CracTools::GenomeMask->new(crac_index_conf => $crac_index_conf,
+  #  verbose => $self->{verbose},
+  #);
+
+  $self->{interval_query} = CracTools::Interval::Query->new();
   
   return $self;
 }
 
-sub genomeMask {
+#sub genomeMask {
+#  my $self = shift;
+#  return $self->{genome_mask};
+#}
+
+sub intervalQuery {
   my $self = shift;
-  return $self->{genome_mask};
+  return $self->{interval_query};
 }
 
 =head2 addMutation
@@ -45,22 +52,28 @@ Add a new event to the collection
 sub addMutation {
   my $self  = shift;
   my $info_line = shift;
-  $self->addEvent();
-  $self->genomeMask->setPos($info_line->{chr},
-    $info_line->{old_pos}, # TODO +1 ?
+  my ($old_nuc,$new_nuc) = $info_line->{mutation} =~ /(\S)\s->\s(\S)/;
+  my $id = $self->addEvent($new_nuc);
+  $self->intervalQuery->addInterval($info_line->{chr},
+    $info_line->{old_pos},
+    $info_line->{old_pos},
+    undef, # A mutation does not have a strand....
+    $id,
   );
 }
 
 sub isTrueMutation {
   my $self = shift;
-  my ($chr,$pos) = @_;
-  # Set search bounds with the threshold
-  my $start = $pos - $self->threshold;
-  my $end = $pos + $self->threshold;
-  # Adjust bounds if we have gone too far
-  $start = 0 if $start < 0;
-  $end = $self->genomeMask->getChrLength($chr) - 1 if $end > $self->genomeMask->getChrLength($chr) - 1;
-  return $self->genomeMask->getNbBitsSetInRegion($chr,$pos - $self->threshold,$pos + $self->threshold);
+  my ($chr,$pos,$nuc) = @_;
+  my @snps = @{$self->intervalQuery->fetchByRegion($chr,$pos - $self->threshold,$pos + $self->threshold)};
+  # We return true if we have found a matching snp that have the same length
+  foreach my $snp (@snps) {
+    my $snp_nuc = $self->getEvent($snp);
+    if($snp_nuc eq $nuc) {
+      return $snp + 1;
+    }
+  }
+  return 0;
 }
 
 1;

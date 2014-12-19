@@ -250,6 +250,33 @@ sub getEvents {
   return $self->{events}->{$type};
 }
 
+=head2 isTrueInsertion($chr,$pos,$length)
+
+=cut
+
+sub isTrueInsertion {
+  my $self = shift;
+  return $self->getEvents('insertion')->isTrueMutation(@_);
+}
+
+=head2 isTrueSNP($chr,$pos,$nuc)
+
+=cut
+
+sub isTrueSNP {
+  my $self = shift;
+  return $self->getEvents('snp')->isTrueMutation(@_);
+}
+
+=head2 isTrueDeletion$chr,$pos,$length)
+
+=cut
+
+sub isTrueDeletion {
+  my $self = shift;
+  return $self->getEvents('deletion')->isTrueMutation(@_);
+}
+
 =head2 isTrueMutation($type,$chr,$pos,$length)
 
 Return true is there is a mutation at this position
@@ -278,6 +305,88 @@ sub isTrueSplice {
   $strand = 1 if !$self->isStranded();
   my $splice_events = $self->getEvents('splice');
   return $splice_events->isTrueSplice($chr,$start,$length,$strand);
+}
+
+=head2 isTrueError 
+
+=cut
+
+sub isTrueError {
+  my $self = shift;
+  my ($read_name, $pos) = @_;
+  my $err_lines = $self->getErrLines($read_name);
+  foreach my $err (@{$err_lines}) {
+    if(abs($err->{pos} - $pos) <= $CracTools::BenchCT::Const::THRESHOLD_ERR) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+=head2 isGoodAlignment
+
+  [read_name]
+  [ref_name]
+  [pos_start] 0 based
+  [ref_start] 0 based
+
+Return true is the alignment of this read is good.
+
+=cut
+
+sub isGoodAlignment {
+  my ($self,$read_name,$ref_name,$pos_start,$ref_start,$strand) = @_;
+  my $bed_line = $self->getBedLine($read_name);
+
+  if(defined $bed_line) {
+    my $first_mapped_block;
+    my $block_cumulated_size = 0;
+
+    # We try to find the first block where the read is located
+    foreach my $block (@{$bed_line->{blocks}}) {
+      if($block->{block_end} > $pos_start) {
+        $first_mapped_block = $block;
+        last;
+      }
+    }
+
+    # There should be a corresponding block, otherwise there is a problem
+    # between the BED file and the query
+    if(defined $first_mapped_block) {
+
+      # Check if the read has been mapped to the right reference
+      if($first_mapped_block->{chr} ne $ref_name) {
+        #print STDERR "Wrong chr\n";
+        return 0;
+      }
+       
+      # Check if protocol is stranded and the read is mapped to the wrong strand
+      if($self->isStranded && CracTools::Utils::convertStrand($first_mapped_block->{strand}) != $strand) {
+        #print STDERR "Wrong strand\n";
+        return 0;
+      }
+
+      # Difference between the first pos of the block to the
+      # pos where the alignement is started
+      my $delta = $pos_start - $first_mapped_block->{block_start};
+     
+
+      # Check if the position if right within a THRESHOLD_MAPPING window
+      if(abs($first_mapped_block->{ref_start} + $delta - $ref_start) <= $CracTools::BenchCT::Const::THRESHOLD_MAPPING &&
+        $first_mapped_block) {
+        return 1;
+      } else {
+        #print STDERR "Bad position : ".($first_mapped_block->{ref_start} + $delta)."\n";
+        #print STDERR Dumper($bed_line);
+        return 0;
+      }
+    } else {
+      warn "There is a problem with the read $ref_name";
+      return 0;
+    }
+  } else {
+    return 0;
+  }
 }
 
 =head2 getBedFileHandle
@@ -376,89 +485,6 @@ sub getErrLines {
   }
 
   return \@err_lines;
-}
-
-
-=head2 isGoodAlignment
-
-  [read_name]
-  [ref_name]
-  [pos_start] 0 based
-  [ref_start] 0 based
-
-Return true is the alignment of this read is good.
-
-=cut
-
-sub isGoodAlignment {
-  my ($self,$read_name,$ref_name,$pos_start,$ref_start,$strand) = @_;
-  my $bed_line = $self->getBedLine($read_name);
-
-  if(defined $bed_line) {
-    my $first_mapped_block;
-    my $block_cumulated_size = 0;
-
-    # We try to find the first block where the read is located
-    foreach my $block (@{$bed_line->{blocks}}) {
-      if($block->{block_end} > $pos_start) {
-        $first_mapped_block = $block;
-        last;
-      }
-    }
-
-    # There should be a corresponding block, otherwise there is a problem
-    # between the BED file and the query
-    if(defined $first_mapped_block) {
-
-      # Check if the read has been mapped to the right reference
-      if($first_mapped_block->{chr} ne $ref_name) {
-        #print STDERR "Wrong chr\n";
-        return 0;
-      }
-       
-      # Check if protocol is stranded and the read is mapped to the wrong strand
-      if($self->isStranded && CracTools::Utils::convertStrand($first_mapped_block->{strand}) != $strand) {
-        #print STDERR "Wrong strand\n";
-        return 0;
-      }
-
-      # Difference between the first pos of the block to the
-      # pos where the alignement is started
-      my $delta = $pos_start - $first_mapped_block->{block_start};
-     
-
-      # Check if the position if right within a THRESHOLD_MAPPING window
-      if(abs($first_mapped_block->{ref_start} + $delta - $ref_start) <= $CracTools::BenchCT::Const::THRESHOLD_MAPPING &&
-        $first_mapped_block) {
-        return 1;
-      } else {
-        #print STDERR "Bad position : ".($first_mapped_block->{ref_start} + $delta)."\n";
-        #print STDERR Dumper($bed_line);
-        return 0;
-      }
-    } else {
-      warn "There is a problem with the read $ref_name";
-      return 0;
-    }
-  } else {
-    return 0;
-  }
-}
-
-=head2 isTrueError 
-
-=cut
-
-sub isTrueError {
-  my $self = shift;
-  my ($read_name, $pos) = @_;
-  my $err_lines = $self->getErrLines($read_name);
-  foreach my $err (@{$err_lines}) {
-    if(abs($err->{pos} - $pos) <= $CracTools::BenchCT::Const::THRESHOLD_ERR) {
-      return 1;
-    }
-  }
-  return 0;
 }
 
 1;

@@ -108,8 +108,8 @@ foreach my $soft (keys %softwares) {
       if(defined $softwares{$soft}->{$event_type}) {
         $value = $softwares{$soft}->{$event_type}->getAccuracy if $stat_type =~ /accuracy/i;
         $value = $softwares{$soft}->{$event_type}->getSensitivity if $stat_type =~ /sensitivity/i;
-        $value = $softwares{$soft}->{$event_type}->getGain if $stat_type =~ /sain/i;
-        $value = $softwares{$soft}->{$event_type}->nbTruePositives if $stat_type =~ /rrue-positives/i;
+        $value = $softwares{$soft}->{$event_type}->getGain if $stat_type =~ /gain/i;
+        $value = $softwares{$soft}->{$event_type}->nbTruePositives if $stat_type =~ /true-positives/i;
         $value = $softwares{$soft}->{$event_type}->nbFalsePositives if $stat_type =~ /false-positives/i;
         $value = $softwares{$soft}->{$event_type}->nbFalseNegatives if $stat_type =~ /false-negatives/i;
         $value = sprintf("%.".$CracTools::BenchCT::Const::NB_DECIMALS."f", $value);

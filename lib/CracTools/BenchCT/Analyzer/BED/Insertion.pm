@@ -6,7 +6,6 @@ package CracTools::BenchCT::Analyzer::BED::Insertion;
 use parent 'CracTools::BenchCT::Analyzer::BED';
 
 use CracTools::Utils;
-#use Data::Dumper;
 
 sub canCheck {
   my $self = shift;
@@ -21,10 +20,10 @@ sub _processLine {
   my $self = shift;
   my $bed_line = shift;
 
-  if($self->checker->isTrueMutation('insertion',$bed_line->{chr},$bed_line->{start},length($bed_line->{name}))) {
-    $self->getStats('insertion')->addTruePositive();
+  my $true_insertion = $self->checker->isTrueInsertion($bed_line->{chr},$bed_line->{start},length($bed_line->{name}));
+  if($true_insertion) {
+    $self->getStats('insertion')->addTruePositive($true_insertion);
   } else {
-    #print STDERR Dumper($bed_line);
     $self->getStats('insertion')->addFalsePositive();
   }
 }

@@ -34,12 +34,8 @@ sub addSplice {
   my $self = shift;
   my ($chr,$start,$length,$strand) = @_; 
     
-  # If we have not found the splice we add it to the IntervalQuert
-  #if(!$self->_foundSplice($chr,$start,$length,$strand,1)) {
-  $self->intervalQuery->addInterval($chr,$start,$start+$length,$strand,$length);
-  $self->addEvent(); # Increment the number of splices
-  #} else {
-  #}
+  my $id = $self->addEvent($length); # Increment the number of splices
+  $self->intervalQuery->addInterval($chr,$start,$start+$length,$strand,$id);
 }
 
 sub isTrueSplice {
@@ -62,8 +58,9 @@ sub _foundSplice {
   my $found_splice = 0;
 
   foreach my $splice (@matching_splices) {
-    if(abs($splice - $length) <= $threshold) {
-      $found_splice = 1;
+    my $splice_length = $self->getEvent($splice);
+    if(abs($splice_length - $length) <= $threshold) {
+      $found_splice = $splice + 1;
       last;
     }
   }

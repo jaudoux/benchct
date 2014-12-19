@@ -21,8 +21,9 @@ sub _processLine {
   my $self = shift;
   my $bed_line = shift;
 
-  if($self->checker->isTrueMutation('deletion',$bed_line->{chr},$bed_line->{start},$bed_line->{end}-$bed_line->{start})) {
-    $self->getStats('deletion')->addTruePositive();
+  my $true_deletion = $self->checker->isTrueDeletion($bed_line->{chr},$bed_line->{start},$bed_line->{end}-$bed_line->{start});
+  if($true_deletion) {
+    $self->getStats('deletion')->addTruePositive($true_deletion);
   } else {
     #print STDERR Dumper($bed_line);
     $self->getStats('deletion')->addFalsePositive();

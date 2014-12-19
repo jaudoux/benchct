@@ -22,6 +22,7 @@ sub new {
   my %args = @_;
 
   $self->{overlap_structure} = CracTools::ChimCT::OverlapStructure->new(max_overlapping_distance => $self->threshold);
+  $self->{chim_ids} = {};
   
   return $self;
 }
@@ -35,15 +36,23 @@ sub addChimera {
   my $self = shift;
   my ($chr1,$pos1,$strand1,$chr2,$pos2,$strand2) = @_; 
   my $chim = CracTools::ChimCT::Chimera->new($chr1,$pos1,$strand1,$chr2,$pos2,$strand2);
+  my $id = $self->addEvent(); # Increment the number of chimeras
+  $self->{chim_ids}{$chim->getKey} = $id;
   $self->overlapStructure->addChimera($chim);
-  $self->addEvent(); # Increment the number of splices
 }
 
 sub isTrueChimera {
   my $self = shift;
   my ($chr1,$pos1,$strand1,$chr2,$pos2,$strand2) = @_; 
   my $chim = CracTools::ChimCT::Chimera->new($chr1,$pos1,$strand1,$chr2,$pos2,$strand2);
-  return $self->overlapStructure->nbOverlappingChimeras($chim);
+  my @overlapping_chimeras = @{$self->overlapStructure->getOverlappingChimeras($chim)};
+  foreach my $overlap_chim (@overlapping_chimeras) {
+    if((abs($overlap_chim->pos1 - $pos1) + abs($overlap_chim->pos2 - $pos2)) <= $self->threshold ||
+       (abs($overlap_chim->pos2 - $pos1) + abs($overlap_chim->pos1 - $pos2)) <= $self->threshold) {
+        return $self->{chim_ids}{$overlap_chim->getKey} + 1;
+     }
+  }
+  return 0;
 }
 
 1;

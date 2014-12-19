@@ -29,9 +29,10 @@ sub _processLine {
     my $start = $bed_line->{blocks}[$i-1]->{ref_end};
     my $end = $bed_line->{blocks}[$i]->{ref_start};
     my $length = $end - $start;
-
-    if($self->checker->isTrueSplice($chr,$start,$length,$strand)) {
-      $self->getStats('splice')->addTruePositive();
+    my $true_splice = $self->checker->isTrueSplice($chr,$start,$length,$strand);
+    
+    if($true_splice) {
+      $self->getStats('splice')->addTruePositive($true_splice);
     } else {
       #print STDERR Dumper($bed_line);
       $self->getStats('splice')->addFalsePositive();

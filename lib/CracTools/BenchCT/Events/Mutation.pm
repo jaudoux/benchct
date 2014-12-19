@@ -38,13 +38,14 @@ Add a new event to the collection
 
 sub addMutation {
   my $self  = shift;
-  $self->addEvent();
   my $info_line = shift;
+  # Add the length of the mutation as the event value
+  my $id = $self->addEvent($info_line->{length});
   $self->intervalQuery->addInterval($info_line->{chr},
     $info_line->{old_pos},
     $info_line->{old_pos},
     undef, # A mutation does not have a strand....
-    $info_line->{length},
+    $id,
   );
 }
 
@@ -54,8 +55,9 @@ sub isTrueMutation {
   my @mutations = @{$self->intervalQuery->fetchByRegion($chr,$pos - $self->threshold,$pos + $self->threshold)};
   # We return true if we have found a matching mutation that have the same length
   foreach my $mutation (@mutations) {
-    if(abs($mutation - $length) <= $self->threshold) {
-      return 1;
+    my $mutation_length = $self->getEvent($mutation);
+    if(abs($mutation_length - $length) <= $self->threshold) {
+      return $mutation + 1;
     }
   }
   return 0;

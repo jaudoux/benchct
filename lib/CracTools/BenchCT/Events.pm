@@ -14,12 +14,10 @@ sub new {
   my %args = @_;
 
   my $self = bless {
-    #interval_query => CracTools::Interval::Query->new(),
     nb_events => 0,
     threshold => $args{threshold},
     verbose   => defined $args{verbose}? $args{verbose} : 0,
-    #event_reads => [],
-    #genome_mask => CracTools::GenomeMask->new(),
+    events    => [],
   }, $class;
 
   return $self;
@@ -37,27 +35,53 @@ sub verbose {
 
 =head2 addEvent
 
-Add a new event to the collection
+  my $event_id = $self->addEvent($event);
+
+Add a new event to the collection and return its id
 
 =cut
 
 sub addEvent {
   my $self = shift;
+  my $event = shift;
+  # Add the new event
+  push(@{$self->{events}},$event) if defined $event;
+  # Increment the counter
   $self->{nb_events}++;
-  #my $info_line = shift;
-  #push(@{$self->{event_reads}},$info_line->{read_ids});
+  # Return the last event ids
+  return $self->getLastEventId;
 }
+
+=head2 getEvent
+
+  my $event = $self->getEvent($event_id);
+
+Return the event associated to the id in parameter
+
+=cut
+
+sub getEvent {
+  my $self = shift;
+  my $id = shift;
+  return $self->{events}[$id];
+}
+
+=head2 getLastEventId
+
+Return the id of the last event added to the structure
+
+=cut
 
 sub getLastEventId {
   my $self = shift;
   return $self->nbEvents - 1;
 }
 
-#sub getEventReads {
-#  my $self = shift;
-#  my $i = shift;
-#  return $self->{event_reads}->[$i];
-#}
+=head2 nbEvents
+
+Return the number of events added to the structure
+
+=cut
 
 sub nbEvents {
   my $self = shift;
