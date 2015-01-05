@@ -46,7 +46,7 @@ sub new {
       $self->addStats($check_type,
         CracTools::BenchCT::Stats->new(nb_elements => $self->checker->nbErrors())
       );
-    } elsif($check_type =~ /^(snp|splice|deletion|insertion)$/ && $self->canCheck($check_type)) {
+    } elsif($check_type =~ /^(snp|splice|deletion|insertion|chimera)$/ && $self->canCheck($check_type)) {
       $self->addStats($check_type,
         CracTools::BenchCT::Stats->new(nb_elements => $self->checker->nbEvents($check_type))
       );

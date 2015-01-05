@@ -307,6 +307,19 @@ sub isTrueSplice {
   return $splice_events->isTrueSplice($chr,$start,$length,$strand);
 }
 
+=head2 isTrueChimera($chr1,$pos1,$strand1,$chr2,$pos2,$strand2)
+
+Return true if there is chimeric junction for these coordinates.
+
+=cut
+
+sub isTrueChimera {
+  my $self = shift;
+  my ($chr1,$pos1,$strand1,$chr2,$pos2,$strand2) = @_;
+  my $chimera_events = $self->getEvents('chimera');
+  return $chimera_events->isTrueChimera($chr1,$pos1,$strand1,$chr2,$pos2,$strand2);
+}
+
 =head2 isTrueError 
 
 =cut
@@ -481,7 +494,9 @@ sub getErrLines {
       }
     }
   } else {
-    carp "No seek_pos for read: $read_name in the err file";
+    # Should we carp?
+    # This just means that the read has no error....
+    #carp "No seek_pos for read: $read_name in the err file";
   }
 
   return \@err_lines;
