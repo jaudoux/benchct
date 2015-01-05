@@ -8,11 +8,12 @@ use YAML::XS qw/LoadFile/;
 use CracTools::BenchCT;
 use CracTools::BenchCT::Const;
 use CracTools::BenchCT::Checker;
-use CracTools::BenchCT::Analyzer::SAM::Crac;
-use CracTools::BenchCT::Analyzer::VCF;
-use CracTools::BenchCT::Analyzer::BED::Junction;
-use CracTools::BenchCT::Analyzer::BED::Insertion;
-use CracTools::BenchCT::Analyzer::BED::Deletion;
+#use CracTools::BenchCT::Analyzer::SAM::Crac;
+#use CracTools::BenchCT::Analyzer::VCF;
+#use CracTools::BenchCT::Analyzer::BED::Junction;
+#use CracTools::BenchCT::Analyzer::BED::Insertion;
+#use CracTools::BenchCT::Analyzer::BED::Deletion;
+#use CracTools::BenchCT::Analyzer::CRAC::Chimera;
 use Getopt::Long qw(:config auto_version); # Get options
 use Pod::Usage;   # Printing pod documentation in terminal
 use Data::Dumper;
@@ -70,6 +71,7 @@ foreach my $soft (@{$config->{softwares}}) {
   foreach my $file (@{$soft->{files}}) {
     print STDERR "[$soft->{name}] Reading $file->{name} file\n" if $verbose;
     my $analyzer_name = 'CracTools::BenchCT::Analyzer::'.$file->{type};
+    load_module($analyzer_name);
     #eval {
     #  require $analyzer_name;
     #  $analyzer_name->import();
@@ -120,6 +122,13 @@ foreach my $soft (keys %softwares) {
     }
   }
   print join("\t",@output),"\n";
+}
+
+sub load_module {
+  for (@_) {
+    (my $file = "$_.pm") =~ s{::}{/}g;
+    require $file;
+  }
 }
 
 #my $benchCT = CracTools::BenchCT->new(
