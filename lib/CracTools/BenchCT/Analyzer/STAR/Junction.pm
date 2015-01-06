@@ -51,7 +51,7 @@ sub parseSTARJunctionLine {
     chr           => $chr,
     start         => $start-1, # Because STAR junctions file is 1-based
     end           => $end-1, # Because STAR junctions file is 1-based
-    strand        => CracTools::Utils::convertStrand($strand),
+    strand        => $strand == 1? 1 : -1,
     intron_motif  => $intron_motif,
     annotated     => $annotated,
     uniq_cover    => $uniq_cover,

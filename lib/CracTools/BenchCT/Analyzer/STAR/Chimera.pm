@@ -44,7 +44,6 @@ sub _init {
 sub parseSTARChimeraLine {
   my $line = shift;
   my($chr1,$pos1,$strand1,$chr2,$pos2,$strand2) = split("\t",$line);
-  my @ids = split(":",$ids);
   return {
     chr1 => $chr1,
     pos1 => $pos1,
