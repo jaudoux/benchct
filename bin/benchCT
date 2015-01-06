@@ -114,7 +114,8 @@ foreach my $soft (keys %softwares) {
         $value = $softwares{$soft}->{$event_type}->nbTruePositives if $stat_type =~ /true-positives/i;
         $value = $softwares{$soft}->{$event_type}->nbFalsePositives if $stat_type =~ /false-positives/i;
         $value = $softwares{$soft}->{$event_type}->nbFalseNegatives if $stat_type =~ /false-negatives/i;
-        $value = sprintf("%.".$CracTools::BenchCT::Const::NB_DECIMALS."f", $value);
+        $value = $softwares{$soft}->{$event_type}->nbElements if $stat_type =~ /nb-elements/i;
+        $value = sprintf("%.".$CracTools::BenchCT::Const::NB_DECIMALS."f", $value) if $stat_type =~ /(accuracy|sensitivity|gain)/;
       } else {
         $value = 'N/A';
       }
