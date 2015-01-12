@@ -28,22 +28,35 @@ while(my $bed_line = $bed_it->()) {
   for(my $i=1; $i < @{$bed_line->{blocks}}; $i++) {
 
     # Check that the splice is not chimeric
-    if ($bed_line->{blocks}[$i-1]->{chr} ne $bed_line->{blocks}[$i]->{chr} ||
-      $bed_line->{blocks}[$i-1]->{strand} ne $bed_line->{blocks}[$i]->{strand} ||
-      $bed_line->{blocks}[$i-1]->{ref_end} >= $bed_line->{blocks}[$i]->{ref_start}) {
+#    if ($bed_line->{blocks}[$i-1]->{chr} ne $bed_line->{blocks}[$i]->{chr} ||
+#      $bed_line->{blocks}[$i-1]->{strand} ne $bed_line->{blocks}[$i]->{strand} ||
+#      $bed_line->{blocks}[$i-1]->{ref_end} >= $bed_line->{blocks}[$i]->{ref_start}) {
+     if (($bed_line->{blocks}[$i-1]->{chimeric} && !$bed_line->{blocks}[$i]->{chimeric}) ||
+         (!$bed_line->{blocks}[$i-1]->{chimeric} && $bed_line->{blocks}[$i]->{chimeric})) {
 
       #print STDERR "read: ".$bed_line->{name}."\n";
     #next if $bed_line->{blocks}[$i]->{strand} eq '+' && $bed_line->{blocks}[$i-1]->{ref_end} > $bed_line->{blocks}[$i]->{ref_start};
     #next if $bed_line->{blocks}[$i]->{strand} eq '-' && $bed_line->{blocks}[$i-1]->{ref_end} < $bed_line->{blocks}[$i]->{ref_start};
-      my $chr1 = $bed_line->{blocks}[$i-1]->{chr};
-      my $chr2 = $bed_line->{blocks}[$i]->{chr};
-      my $strand1 = $bed_line->{blocks}[$i-1]->{strand};
-      my $strand2 = $bed_line->{blocks}[$i]->{strand};
-      my $pos1 = $bed_line->{blocks}[$i-1]->{ref_end};
-      my $pos2 = $bed_line->{blocks}[$i]->{ref_start};
+      my($chr1,$chr2,$strand1,$strand2,$pos1,$pos2);
+      #if(!$bed_line->{blocks}[$i-1]->{chimeric}) {
+        $chr1 = $bed_line->{blocks}[$i-1]->{chr};
+        $chr2 = $bed_line->{blocks}[$i]->{chr};
+        $strand1 = $bed_line->{blocks}[$i-1]->{strand};
+        $strand2 = $bed_line->{blocks}[$i]->{strand};
+        $pos1 = $bed_line->{blocks}[$i-1]->{ref_end};
+        $pos2 = $bed_line->{blocks}[$i]->{ref_start};
+        #my $reversed_key = $chr2.'@'.($strand2*-1).'@'.$pos2.'@'.$chr1.'@'.($strand1*-1).'@'.$pos1;
+        #} else {
+        #} $chr2 = $bed_line->{blocks}[$i-1]->{chr};
+        #} $chr1 = $bed_line->{blocks}[$i]->{chr};
+        #} $strand2 = $bed_line->{blocks}[$i-1]->{strand};
+        #} $strand1 = $bed_line->{blocks}[$i]->{strand};
+        #} $pos2 = $bed_line->{blocks}[$i-1]->{ref_end};
+        #} $pos1 = $bed_line->{blocks}[$i]->{ref_start};
+        #}
+
       my $key = $chr1.'@'.$strand1.'@'.$pos1.'@'.$chr2.'@'.$strand2.'@'.$pos2;
-      my $reversed_key = $chr1.'@'.($strand1*-1).'@'.$pos1.'@'.$chr2.'@'.($strand2*-1).'@'.$pos2;
-      #my $reversed_key = $chr2.'@'.($strand2*-1).'@'.$pos2.'@'.$chr1.'@'.($strand1*-1).'@'.$pos1;
+      my $reversed_key = $chr2.'@'.($strand2*-1).'@'.$pos2.'@'.$chr1.'@'.($strand1*-1).'@'.$pos1;
 
       if(!$is_stranded && defined $chimeras{$reversed_key}) {
         $key = $reversed_key;
@@ -110,13 +123,14 @@ sub parseGSBedLine {
   my $cumulated_block_size = 0;
   for(my $i = 0; $i < $block_count; $i++) {
     # manage chimeric blocks
-    my ($block_chr,$block_strand,$block_start) = $block_starts[$i] =~ /(\S+)@([+-])(\d+)/;
-    $block_starts[$i] = $block_start if defined $block_start;
-    my $ref_start = defined $block_start? $block_start : $block_starts[$i] + $start;
-    my $ref_end = defined $block_start? $block_start + $block_size[$i] : $block_starts[$i] + $start + $block_size[$i];
-    $block_chr =~ s/^chr// if defined $block_chr;
-    $block_chr = $chr if !defined $block_chr;
-    $block_strand = $strand if !defined $block_strand;
+    my ($block_chr,$block_strand);
+    my ($chimeric_chr,$chimeric_strand,$chimeric_start) = $block_starts[$i] =~ /(\S+)@([+-])(\d+)/;
+    $block_starts[$i] = $chimeric_start if defined $chimeric_start;
+    my $ref_start = defined $chimeric_start? $chimeric_start : $block_starts[$i] + $start;
+    my $ref_end = defined $chimeric_start? $chimeric_start + $block_size[$i] : $block_starts[$i] + $start + $block_size[$i];
+    $chimeric_chr =~ s/^chr// if defined $chimeric_chr;
+    $block_chr = defined $chimeric_chr? $chimeric_chr : $chr;
+    $block_strand = defined $chimeric_strand? $chimeric_strand : $strand;
     push(@blocks,{size        => $block_size[$i], 
         start        => $block_starts[$i], 
         end          => $block_starts[$i] + $block_size[$i],
@@ -126,6 +140,7 @@ sub parseGSBedLine {
         ref_end      => $ref_end,
         chr          => $block_chr,
         strand       => CracTools::Utils::convertStrand($block_strand), # Convert strand from '+/-' to '1/-1' format
+        chimeric     => defined $chimeric_start? 1 : 0,
       });
     $cumulated_block_size += $block_size[$i];
   }
