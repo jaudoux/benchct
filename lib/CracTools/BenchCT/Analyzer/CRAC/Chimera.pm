@@ -21,18 +21,22 @@ sub _init {
   my $self = shift;
   my %args = @_;
   my $chimera_file = $args{file};
+  my $min_score = $args{options}->{min_score};
   my $chim_it = CracTools::Utils::getFileIterator(file => $chimera_file,
     parsing_method => \&parseCRACChimeraLine,
     header_regex => '^#'
   );
   while (my $chimera = $chim_it->()) {
-    my $true_chimera = $self->checker->isTrueChimera($chimera->{chr1},$chimera->{pos1},$chimera->{strand1},$chimera->{chr2},$chimera->{pos2},$chimera->{strand2});
-    
-    if($true_chimera) {
-      $self->getStats('chimera')->addTruePositive($true_chimera);
-    } else {
-      #print STDERR Dumper($chimera);
-      $self->getStats('chimera')->addFalsePositive();
+
+    if(!defined $min_score || !defined $chimera->{score} || $chimera->{score} >= $min_score) {
+      my $true_chimera = $self->checker->isTrueChimera($chimera->{chr1},$chimera->{pos1},$chimera->{strand1},$chimera->{chr2},$chimera->{pos2},$chimera->{strand2});
+      
+      if($true_chimera) {
+        $self->getStats('chimera')->addTruePositive($true_chimera);
+      } else {
+        #print STDERR Dumper($chimera);
+        $self->getStats('chimera')->addFalsePositive();
+      }
     }
   }
 }
@@ -43,7 +47,7 @@ sub _init {
 
 sub parseCRACChimeraLine {
   my $line = shift;
-  my($chr1,$pos1,$strand1,$chr2,$pos2,$strand2,$ids,$nb) = split("\t",$line);
+  my($chr1,$pos1,$strand1,$chr2,$pos2,$strand2,$score,$ids,$nb) = split("\t",$line);
   my @ids = split(":",$ids);
   return {
     chr1 => $chr1,
@@ -52,6 +56,7 @@ sub parseCRACChimeraLine {
     chr2 => $chr2,
     pos2 => $pos2,
     strand2 => CracTools::Utils::convertStrand($strand2),
+    score => $score eq 'N/A'? undef : $score,
     ids => \@ids,
     nb => $nb,
   };
