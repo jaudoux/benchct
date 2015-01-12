@@ -54,7 +54,7 @@ $CracTools::BenchCT::Const::THRESHOLD_SPLICE  = $threshold_splice  if defined $t
 
 # Create the checker
 my $checker = CracTools::BenchCT::Checker->new(
-  info_file           => $config->{checker}->{files}->{mutations}, # contains mutations
+  vcf_file            => $config->{checker}->{files}->{mutations}, # contains mutations
   bed_file            => $config->{checker}->{files}->{mapping}, # contains alignements
   err_file            => $config->{checker}->{files}->{errors}, # contains errors
   junction_bed_file   => $config->{checker}->{files}->{splices},
@@ -85,6 +85,7 @@ foreach my $soft (@{$config->{softwares}}) {
       file => $file->{name},
       checker => $checker,
       check => $file->{check},
+      options => $file->{options},
     );
     foreach my $check_type (@{$analyzer->allCheckedEvents}) {
       $event_types{$check_type} = 1;

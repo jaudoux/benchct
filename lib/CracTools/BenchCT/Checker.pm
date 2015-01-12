@@ -13,6 +13,10 @@ use CracTools::BenchCT::Events::Chimera;
 use Data::Dumper; #for debugging
 use Carp;
 
+=head1 DOCUMENTATION
+
+CracTools::BenchCT::Checker is 0-based!!!
+
 =head2 new
 
 =cut
@@ -26,7 +30,8 @@ sub new {
 
   my $self = bless {
     is_stranded         => $is_stranded,
-    info_file           => $args{info_file}, # contains mutations
+    #info_file           => $args{info_file}, # contains mutations
+    vcf_file            => $args{vcf_file}, # contains mutations
     bed_file            => $args{bed_file}, # contains alignements
     bed_fh              => defined $args{bed_file}? CracTools::Utils::getReadingFileHandle($args{bed_file}) : undef,
     err_file            => $args{err_file}, # contains errors
@@ -123,23 +128,29 @@ sub _init {
     }
   }
 
-  # Read info file (snps, indels)
-  if(defined $self->{info_file}) {
-    print STDERR "[checker] Reading info file\n" if $self->verbose;
+  # Read vcf file (snps, indels)
+  if(defined $self->{vcf_file}) {
+    print STDERR "[checker] Reading vcf file\n" if $self->verbose;
     # Secondly we read the info file to register mutations
-    my $info_it = CracTools::Utils::getFileIterator(file =>$self->{info_file},
-      parsing_method => \&CracTools::BenchCT::Utils::parseInfoLine, # we use our own parsing method
-      skip => 1, # skip the first line
-    );
+    my $vcf_it = CracTools::Utils::vcfFileIterator($self->{vcf_file});
 
     # store tag ids for each mutation in an Interval Tree (one for each type of mutations
-    while(my $info_line = $info_it->()) {
-      my $mutation_type = $info_line->{type};
-      $mutation_type = 'snp' if $info_line->{type} eq 'sub'; # rename substition in snps
-      $mutation_type = 'deletion' if $info_line->{type} eq 'del'; # rename substition in snps
-      $mutation_type = 'insertion' if $info_line->{type} eq 'ins'; # rename substition in snps
-      if(defined $self->getEvents($mutation_type)) {
-        $self->getEvents($mutation_type)->addMutation($info_line);
+    while(my $vcf_line = $info_it->()) {
+      my $ref_length = length $vcf_line->{ref};
+      foreach my $alt (@{$vcf_line->{alt}}) {
+        my $alt_length = length $alt;
+        my $mutation_type = $vcf_line->{type};
+        # It is a substitution
+        if($ref_length == $alt_length) {
+          # We shift the pos if the reference has more than one nucleotide
+          $self->getEvents('snp')->addMutation($vcf_line->{chr},$vcf_line->{pos} + $ref_length - 2,$alt);
+        # This is a deletion
+        } elsif($ref_length > $alt_length) {
+          $self->getEvents('deletion')->addMutation($vcf_line->{chr},$vcf_line->{pos} + $alt_length - 2,$ref_length - $alt_length);
+        # This is an insertion
+        } else {
+          $self->getEvents('insertion')->addMutation($vcf_line->{chr},$vcf_line->{pos} + $ref_length - 2,$alt_length - $ref_length);
+        }
       }
     }
   }

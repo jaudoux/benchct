@@ -51,12 +51,11 @@ Add a new event to the collection
 
 sub addMutation {
   my $self  = shift;
-  my $info_line = shift;
-  my ($old_nuc,$new_nuc) = $info_line->{mutation} =~ /(\S)\s->\s(\S)/;
+  my ($chr,$pos,$new_nuc) = @_;
   my $id = $self->addEvent($new_nuc);
-  $self->intervalQuery->addInterval($info_line->{chr},
-    $info_line->{old_pos},
-    $info_line->{old_pos},
+  $self->intervalQuery->addInterval($chr,
+    $pos,
+    $pos,
     undef, # A mutation does not have a strand....
     $id,
   );

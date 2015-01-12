@@ -38,12 +38,12 @@ Add a new event to the collection
 
 sub addMutation {
   my $self  = shift;
-  my $info_line = shift;
+  my ($chr,$pos,$length) = @_;
   # Add the length of the mutation as the event value
-  my $id = $self->addEvent($info_line->{length});
-  $self->intervalQuery->addInterval($info_line->{chr},
-    $info_line->{old_pos},
-    $info_line->{old_pos},
+  my $id = $self->addEvent($length);
+  $self->intervalQuery->addInterval($chr,
+    $pos,
+    $pos,
     undef, # A mutation does not have a strand....
     $id,
   );
