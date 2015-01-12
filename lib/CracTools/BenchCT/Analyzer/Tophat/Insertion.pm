@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-package CracTools::BenchCT::Analyzer::BED::Insertion;
+package CracTools::BenchCT::Analyzer::Tophat::Insertion;
 # ABSTRACT: Analyze deletion bed files (as tophat produce)
 #
 use parent 'CracTools::BenchCT::Analyzer::BED';
