@@ -135,7 +135,7 @@ sub _init {
     my $vcf_it = CracTools::Utils::vcfFileIterator($self->{vcf_file});
 
     # store tag ids for each mutation in an Interval Tree (one for each type of mutations
-    while(my $vcf_line = $info_it->()) {
+    while(my $vcf_line = $vcf_it->()) {
       my $ref_length = length $vcf_line->{ref};
       foreach my $alt (@{$vcf_line->{alt}}) {
         my $alt_length = length $alt;
@@ -245,7 +245,7 @@ Given a read_name, this method return the read id (from 0 to nb_reads).
 sub getReadId {
   my $self = shift;
   my $read_name = shift;
-  my $read_id = $read_name =~ /^\d+$/? $read_name : $self->getReadId($read_name);
+  my $read_id = $read_name =~ /^\d+$/? $read_name : $self->{read_ids}->{$read_name};
   return $read_id;
 }
 
