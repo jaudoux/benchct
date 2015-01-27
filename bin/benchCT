@@ -69,6 +69,7 @@ my %event_types;
 foreach my $soft (@{$config->{softwares}}) {
   my %stats;
   foreach my $file (@{$soft->{files}}) {
+    next if !defined $file->{check};
     print STDERR "[$soft->{name}] Reading $file->{name} file\n" if $verbose;
     my $analyzer_name = 'CracTools::BenchCT::Analyzer::'.$file->{type};
     load_module($analyzer_name);
@@ -102,7 +103,7 @@ foreach my $soft (@{$config->{softwares}}) {
 # Print output
 my @event_types = sort keys %event_types;
 my @cols = map { my $x = $_; map $x."::".$_, @stat_types } @event_types;
-print "#softwares\t",join("\t",@cols),"\n";
+print "softwares\t",join("\t",@cols),"\n";
 foreach my $soft (keys %softwares) {
   my @output = ($soft);
   foreach my $event_type (@event_types) {
