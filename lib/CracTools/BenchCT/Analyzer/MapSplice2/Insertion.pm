@@ -58,8 +58,8 @@ sub parseMapSplice2InsertionLine {
     );
   }
   return {
-    chr => $field[0],
-    start => $field[1],
+    chr => $fields[0],
+    start => $fields[1],
     insertions => \@insertions_hash,
     
   };
