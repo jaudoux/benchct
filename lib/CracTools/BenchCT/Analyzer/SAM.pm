@@ -24,6 +24,14 @@ sub _init {
   my $sam_reader = CracTools::SAMReader->new($sam_file);
   my $sam_it = $sam_reader->iterator();
   while (my $sam_line = $sam_it->()) {
+    # ADD /1 or /2 to read name
+    my $name = $sam_line->qname;
+    if($name !~ /\/1$/ && $sam_line->isFlagged($CracTools::SAMReader::SAMline::flags{FIRST_SEGMENT})) {
+      $name .= "/1";
+    } elsif($name !~ /\/2$/ && $sam_line->isFlagged($CracTools::SAMReader::SAMline::flags{LAST_SEGMENT})) {
+      $name .= "/2";
+    }
+    $sam_line->qname($name);
     # This is a hook line for subclasses
     $self->_processLine($sam_line);
   }
