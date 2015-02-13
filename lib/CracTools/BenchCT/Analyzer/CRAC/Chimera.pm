@@ -48,7 +48,7 @@ sub _init {
 sub parseCRACChimeraLine {
   my $line = shift;
   my($chr1,$pos1,$strand1,$chr2,$pos2,$strand2,$score,$ids,$nb) = split("\t",$line);
-  my @ids = split(":",$ids);
+  my @ids = split(",",$ids);
   return {
     chr1 => $chr1,
     pos1 => $pos1,
