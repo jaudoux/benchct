@@ -22,7 +22,7 @@ sub new {
     false_positives_hash => {}, # Hash to store false positives element
     false_positives_fh => _getFilehandleIfDef($args{false_positives_file}),
     true_positives_fh => _getFilehandleIfDef($args{true_positives_file}),
-    false_negatives_fh => _getFilehandleIfDef($args{false_positives_file}),
+    false_negatives_fh => _getFilehandleIfDef($args{false_negatives_file}),
 
   },$class;
 
@@ -171,6 +171,10 @@ sub closeOutputs {
   my $self = shift;
   close $self->getFalsePositivesFileHandle() if defined $self->getFalsePositivesFileHandle();
   delete $self->{false_positives_fh};
+  close $self->getFalseNegativesFileHandle() if defined $self->getFalseNegativesFileHandle();
+  delete $self->{false_negatives_fh};
+  close $self->getTruePositivesFileHandle() if defined $self->getTruePositivesFileHandle();
+  delete $self->{true_positives_fh};
 }
 
 =head1 PRIVATE METHODS
