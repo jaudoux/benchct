@@ -23,7 +23,7 @@ sub _processLine {
 
   my $true_deletion = $self->checker->isTrueDeletion($bed_line->{chr},$bed_line->{start},$bed_line->{end}-$bed_line->{start});
   if($true_deletion) {
-    $self->getStats('deletion')->addTruePositive($true_deletion);
+    $self->getStats('deletion')->addTruePositive(id => $true_deletion);
   } else {
     #print STDERR Dumper($bed_line);
     $self->getStats('deletion')->addFalsePositive();

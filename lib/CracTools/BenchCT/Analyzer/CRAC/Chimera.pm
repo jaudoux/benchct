@@ -32,10 +32,10 @@ sub _init {
       my $true_chimera = $self->checker->isTrueChimera($chimera->{chr1},$chimera->{pos1},$chimera->{strand1},$chimera->{chr2},$chimera->{pos2},$chimera->{strand2});
       
       if($true_chimera) {
-        $self->getStats('chimera')->addTruePositive($true_chimera);
+        $self->getStats('chimera')->addTruePositive(id => $true_chimera);
       } else {
         #print STDERR Dumper($chimera);
-        $self->getStats('chimera')->addFalsePositive(join("\t",($chimera->{chr1},$chimera->{pos1},$chimera->{strand1},$chimera->{chr2},$chimera->{pos2},$chimera->{strand2}),join(",",@{$chimera->{ids}})));
+        $self->getStats('chimera')->addFalsePositive(out_string => join("\t",($chimera->{chr1},$chimera->{pos1},$chimera->{strand1},$chimera->{chr2},$chimera->{pos2},$chimera->{strand2}),join(",",@{$chimera->{ids}})));
       }
     }
   }

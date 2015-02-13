@@ -32,7 +32,7 @@ sub _processLine {
     my $true_splice = $self->checker->isTrueSplice($chr,$start,$length,$strand);
     
     if($true_splice) {
-      $self->getStats('splice')->addTruePositive($true_splice);
+      $self->getStats('splice')->addTruePositive(id => $true_splice);
     } else {
       #print STDERR Dumper($bed_line);
       $self->getStats('splice')->addFalsePositive();

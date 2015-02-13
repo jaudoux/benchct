@@ -338,7 +338,10 @@ sub isTrueChimera {
 sub isTrueError {
   my $self = shift;
   my ($read_name, $pos) = @_;
-  my $err_lines = $self->getErrLines($read_name);
+  # convert read name into a read id
+  # If the read_name is already the read_id we use it directly
+  my $read_id = $self->getReadId($read_name);
+  my $err_lines = $self->getErrLines($read_id);
   foreach my $err (@{$err_lines}) {
     if(abs($err->{pos} - $pos) <= $CracTools::BenchCT::Const::THRESHOLD_ERR) {
       return 1;
@@ -360,7 +363,12 @@ Return true is the alignment of this read is good.
 
 sub isGoodAlignment {
   my ($self,$read_name,$ref_name,$pos_start,$ref_start,$strand) = @_;
-  my $bed_line = $self->getBedLine($read_name);
+
+  # convert read name into a read id
+  # If the read_name is already the read_id we use it directly
+  my $read_id = $self->getReadId($read_name);
+
+  my $bed_line = $self->getBedLine($read_id);
 
   if(defined $bed_line) {
     my $block_cumulated_size = 0;
@@ -387,7 +395,7 @@ sub isGoodAlignment {
 
         # Check if the position if right within a THRESHOLD_MAPPING window
         if(abs($block->{ref_start} + $delta - $ref_start) <= $CracTools::BenchCT::Const::THRESHOLD_MAPPING) {
-          return 1;
+          return $read_id + 1;
         }
       }
     }
@@ -437,11 +445,7 @@ Given a read_name, we return the associated bed line (already parsed
 
 sub getBedLine {
   my $self = shift;
-  my $read_name = shift;
-
-  # concert read name into a read id
-  # If the read_name is already the read_id we use it directly
-  my $read_id = $self->getReadId($read_name);
+  my $read_id = shift;
 
   # Get the seek position of this read in the bed file
 
@@ -455,7 +459,7 @@ sub getBedLine {
     return CracTools::BenchCT::Utils::parseGSBedLine($line);
 
   } else {
-    carp "No seek_pos for read: $read_name in the bed file";
+    carp "No seek_pos for read: $read_id in the bed file";
     return undef;
   }
 
@@ -467,13 +471,9 @@ sub getBedLine {
 
 sub getErrLines {
   my $self = shift;
-  my $read_name = shift;
+  my $read_id = shift;
 
   my @err_lines;
-
-  # concert read name into a read id
-  # If the read_name is already the read_id we use it directly
-  my $read_id = $self->getReadId($read_name);
 
   # Get the seek position of this read in the err file
   my $seek_pos = $self->{err_seek_pos}[$read_id];

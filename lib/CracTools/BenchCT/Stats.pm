@@ -17,37 +17,84 @@ sub new {
   my $self = bless {
     nb_elements => $args{nb_elements}, # This is equal to : number of true positives + number of false negatives
     bitvector => CracTools::BitVector->new($args{nb_elements}),
-    true_positives => 0,
-    false_positives => 0,
-    false_positives_fh => defined $args{false_positives_file}? CracTools::Utils::getWritingFileHandle($args{false_positives_file}) : undef,
+    true_positives_nb => 0,
+    false_positives_nb => 0,
+    false_positives_hash => {}, # Hash to store false positives element
+    false_positives_fh => _getFilehandleIfDef($args{false_positives_file}),
+    true_positives_fh => _getFilehandleIfDef($args{true_positives_file}),
+    false_negatives_fh => _getFilehandleIfDef($args{false_positives_file}),
+
   },$class;
 
   return $self;
 }
 
+=head2 addTruePositive
+
+  [id] String (optional)
+       This is the id of the true positive in order to count it only once.
+       This is the value that has been returned by the CracTools::BenchCT::Checker
+       object.
+  [out_string] String (optional)
+       This string will be printed on the output file that contains false positive
+       information
+
+=cut
+
 sub addTruePositive {
   my $self = shift;
-  my $id = shift;
+  my %args = @_;
+  my $id = $args{id};
+  my $out_string = $args{out_string};
   # If we have already seen this event we do not count it
   if(defined $id) {
     if($self->{bitvector}->get($id-1) == 0) {
       $self->{bitvector}->set($id-1);
-      $self->{true_positives}++;
+      $self->{true_positives_nb}++;
+      # If we have an output stream and an output string we print it
+      _printOutputString($self->getTruePositivesFileHandle,$out_string);
     }
   } else {
-    $self->{true_positives}++;
+    $self->{true_positives_nb}++;
+    # If we have an output stream and an output string we print it
+    _printOutputString($self->getTruePositivesFileHandle,$out_string);
   }
 }
 
+=head2 addFalsePositive 
+
+  [id] String (optional)
+       This is the id of the false positive in order to count it only once.
+       This is the value that has been returned by the CracTools::BenchCT::Checker
+       object. If there is no redundant FP in the file processed by the analyzer
+       do not indicate an id, otherwise it will take memory for nothing.
+  [out_string] String (optional)
+       This string will be printed on the output file that contains false positive
+       information
+
+=cut
+
 sub addFalsePositive {
   my $self = shift;
-  my $false_positive = shift;
+  my %args = @_;
+  my $id = $args{id};
+  my $out_string = $args{out_string};
   my $fh = $self->getFalsePositivesFileHandle;
-  if(defined $false_positive && defined $fh) {
-    chomp $false_positive;
-    print $fh $false_positive,"\n";
+  if(defined $id) {
+    # If we have already seen that FP, we do not count it anymore
+    if(!defined $self->getFalsePositivesHash->{$id}) {
+      $self->getFalsePositivesHash->{$id} = 1;
+      $self->{false_positives_nb}++;
+      # If we have an output stream and an output string we print it
+      _printOutputString($self->getFalsePositivesFileHandle,$out_string);
+    } else {
+      $self->getFalsePositivesHash->{$id}++;
+    }
+  } else {
+    $self->{false_positives_nb}++;
+    # If we have an output stream and an output string we print it
+    _printOutputString($self->getFalsePositivesFileHandle,$out_string);
   }
-  $self->{false_positives}++;
 }
 
 sub nbElements {
@@ -57,12 +104,12 @@ sub nbElements {
 
 sub nbTruePositives {
   my $self = shift;
-  return $self->{true_positives};
+  return $self->{true_positives_nb};
 }
 
 sub nbFalsePositives {
   my $self = shift;
-  return $self->{false_positives};
+  return $self->{false_positives_nb};
 }
 
 sub nbFalseNegatives {
@@ -93,6 +140,21 @@ sub getFalsePositivesFileHandle {
   return $self->{false_positives_fh};
 }
 
+sub getTruePositivesFileHandle {
+  my $self = shift;
+  return $self->{true_positives_fh};
+}
+
+sub getFalseNegativesFileHandle {
+  my $self = shift;
+  return $self->{false_negatives_fh};
+}
+
+sub getFalsePositivesHash {
+  my $self = shift;
+  return $self->{false_positives_hash};
+}
+
 sub print {
   my $self = shift;
   my $fh = shift;
@@ -109,6 +171,24 @@ sub closeOutputs {
   my $self = shift;
   close $self->getFalsePositivesFileHandle() if defined $self->getFalsePositivesFileHandle();
   delete $self->{false_positives_fh};
+}
+
+=head1 PRIVATE METHODS
+
+=cut
+
+sub _getFilehandleIfDef {
+  my $file = shift;
+  return defined $file? CracTools::Utils::getWritingFileHandle($file) : undef,
+}
+
+sub _printOutputString {
+  my $fh = shift;
+  my $out_string = shift;
+  if (defined $fh && defined $out_string) {
+    chomp $out_string;
+    print $fh $out_string,"\n";
+  }
 }
 
 1;

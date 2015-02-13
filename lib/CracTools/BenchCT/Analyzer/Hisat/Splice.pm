@@ -34,7 +34,7 @@ sub _init {
     );
     
     if($true_splice) {
-      $self->getStats('splice')->addTruePositive($true_splice);
+      $self->getStats('splice')->addTruePositive(id => $true_splice);
     } else {
       $self->getStats('splice')->addFalsePositive();
     }

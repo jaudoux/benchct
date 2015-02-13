@@ -66,7 +66,7 @@ sub _processLine {
     # Now we check the validity of the event
     if(defined $self->getStats($type)) {
       if($true_mutation) {
-        $self->getStats($type)->addTruePositive($true_mutation);
+        $self->getStats($type)->addTruePositive(id => $true_mutation);
       } else {
         $self->getStats($type)->addFalsePositive();
       }

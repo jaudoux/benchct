@@ -28,10 +28,10 @@ sub _init {
     
     if(!defined $chimera->{comments}->{CRAC_score} || !defined $min_crac_score || $chimera->{comments}->{CRAC_score} >= $min_crac_score) {
       if($true_chimera) {
-        $self->getStats('chimera')->addTruePositive($true_chimera);
+        $self->getStats('chimera')->addTruePositive(id => $true_chimera);
       } else {
         #print STDERR Dumper($chimera);
-        $self->getStats('chimera')->addFalsePositive($chimera->{chim_key});
+        $self->getStats('chimera')->addFalsePositive(out_string => $chimera->{chim_key});
       }
     }
   }

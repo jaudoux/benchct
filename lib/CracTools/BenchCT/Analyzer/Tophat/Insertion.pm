@@ -22,7 +22,7 @@ sub _processLine {
 
   my $true_insertion = $self->checker->isTrueInsertion($bed_line->{chr},$bed_line->{start},length($bed_line->{name}));
   if($true_insertion) {
-    $self->getStats('insertion')->addTruePositive($true_insertion);
+    $self->getStats('insertion')->addTruePositive(id => $true_insertion);
   } else {
     $self->getStats('insertion')->addFalsePositive();
   }

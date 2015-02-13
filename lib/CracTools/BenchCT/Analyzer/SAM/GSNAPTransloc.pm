@@ -33,10 +33,10 @@ sub _checkChimera {
   my $true_chimera = $self->checker->isTrueChimera($chr1,$pos1+$nb_matched,CracTools::Utils::convertStrand($strand1),$chr2,$pos2,CracTools::Utils::convertStrand($strand2));
   
   if($true_chimera) {
-    $self->getStats('chimera')->addTruePositive($true_chimera);
+    $self->getStats('chimera')->addTruePositive(id => $true_chimera);
   } else {
     #print STDERR Dumper($chimera);
-    $self->getStats('chimera')->addFalsePositive();
+    $self->getStats('chimera')->addFalsePositive(id => "$chr1;$pos1;$strand1;$chr2;$pos2;$strand2");
   }
 }
 

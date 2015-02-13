@@ -29,7 +29,7 @@ sub _init {
     foreach my $ins (@{$insertions->{insertions}}) {
       my $true_insertion = $self->checker->isTrueInsertion($insertions->{chr},$insertions->{start},length($ins->{sequence}));
       if($true_insertion) {
-        $self->getStats('insertion')->addTruePositive($true_insertion);
+        $self->getStats('insertion')->addTruePositive(id => $true_insertion);
       } else {
         $self->getStats('insertion')->addFalsePositive();
       }

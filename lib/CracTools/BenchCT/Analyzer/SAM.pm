@@ -83,11 +83,16 @@ sub _checkMapping {
     # Get strand, this can be usefull if the simulated data are stranded
     my $strand = $sam_line->isFlagged($CracTools::SAMReader::SAMline::flags{REVERSE_COMPLEMENTED})? -1 : 1;
 
+    my $good_alignment = $self->checker->isGoodAlignment($sam_line->qname,$chr,$pos_start,$sam_line->pos-1,$strand);
+
     # -1 because checker is 0 based
-    if($self->checker->isGoodAlignment($sam_line->qname,$chr,$pos_start,$sam_line->pos-1,$strand)) {
-      $self->getStats('mapping')->addTruePositive(); 
+    if($good_alignment) {
+      $self->getStats('mapping')->addTruePositive(id => $good_alignment, out_string => $sam_line->line); 
     } else {
-      $self->getStats('mapping')->addFalsePositive($sam_line->line);
+      # TODO should we add the read name as ID here?
+      # IT could be interesting if the mapper yeld multiple alignements for one read and
+      # do not raise the flag "secondary alignment"
+      $self->getStats('mapping')->addFalsePositive(out_string => $sam_line->line);
     }
   } else {
     # this is a false negative
@@ -124,10 +129,10 @@ sub _checkSplice {
       my $true_splice = $self->checker->isTrueSplice($chr,$pos-1,$nb,$strand);
       
       if($true_splice) {
-        $self->getStats('splice')->addTruePositive($true_splice);
+        $self->getStats('splice')->addTruePositive(id => $true_splice, out_string => $sam_line->line);
       } else {
         #print STDERR Dumper($bed_line);
-        $self->getStats('splice')->addFalsePositive($sam_line->line);
+        $self->getStats('splice')->addFalsePositive(id => "$chr;$pos", out_string => $sam_line->line);
       }
       $pos += $nb;
     }
