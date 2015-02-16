@@ -17,6 +17,8 @@ sub new {
   my $self = bless {
     nb_elements => $args{nb_elements}, # This is equal to : number of true positives + number of false negatives
     bitvector => CracTools::BitVector->new($args{nb_elements}),
+    print_header => $args{print_header},
+    print_element => $args{print_element},
     true_positives_nb => 0,
     false_positives_nb => 0,
     false_positives_hash => {}, # Hash to store false positives element
@@ -25,6 +27,8 @@ sub new {
     false_negatives_fh => _getFilehandleIfDef($args{false_negatives_file}),
 
   },$class;
+
+  $self->_init();
 
   return $self;
 }
@@ -48,8 +52,8 @@ sub addTruePositive {
   my $out_string = $args{out_string};
   # If we have already seen this event we do not count it
   if(defined $id) {
-    if($self->{bitvector}->get($id-1) == 0) {
-      $self->{bitvector}->set($id-1);
+    if($self->bitvector->get($id-1) == 0) {
+      $self->bitvector->set($id-1);
       $self->{true_positives_nb}++;
       # If we have an output stream and an output string we print it
       _printOutputString($self->getTruePositivesFileHandle,$out_string);
@@ -95,6 +99,11 @@ sub addFalsePositive {
     # If we have an output stream and an output string we print it
     _printOutputString($self->getFalsePositivesFileHandle,$out_string);
   }
+}
+
+sub bitvector {
+  my $self = shift;
+  return $self->{bitvector};
 }
 
 sub nbElements {
@@ -169,17 +178,37 @@ sub print {
 
 sub closeOutputs {
   my $self = shift;
+
+  # First we print FN before closing this stream
+  if(defined $self->getFalseNegativesFileHandle) {
+    for(my $i = 0; $i < $self->bitvector->length; $i++) {
+      if($self->bitvector->get($i) == 0) {
+        $self->{print_element}->($self->getFalseNegativesFileHandle,$i);
+      }
+    }
+  }
+  
   close $self->getFalsePositivesFileHandle() if defined $self->getFalsePositivesFileHandle();
   delete $self->{false_positives_fh};
   close $self->getFalseNegativesFileHandle() if defined $self->getFalseNegativesFileHandle();
   delete $self->{false_negatives_fh};
   close $self->getTruePositivesFileHandle() if defined $self->getTruePositivesFileHandle();
   delete $self->{true_positives_fh};
+
+  delete $self->{print_header};
+  delete $self->{print_element};
 }
 
 =head1 PRIVATE METHODS
 
 =cut
+
+sub _init {
+  my $self = shift;
+  # print header ins output files, if they exists
+  $self->{print_header}->($self->getFalseNegativesFileHandle) if defined $self->getFalseNegativesFileHandle;
+  $self->{print_header}->($self->getTruePositivesFileHandle) if defined $self->getTruePositivesFileHandle;
+}
 
 sub _getFilehandleIfDef {
   my $file = shift;

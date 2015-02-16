@@ -33,6 +33,8 @@ sub new {
   my @check_types;
 
   my $false_positives_file = $args{false_positives_file};
+  my $false_negatives_file = $args{false_negatives_file};
+  my $true_positives_file = $args{true_positives_file};
 
   if($args{check} eq 'all') {
     push @check_types, @{$self->allCheckableEvents};
@@ -45,18 +47,26 @@ sub new {
       $self->addStats($check_type,
         CracTools::BenchCT::Stats->new(nb_elements => $self->checker->nbReads(),
           false_positives_file => defined $false_positives_file? "$false_positives_file-mapping.log" : undef,
+          false_negatives_file => defined $false_negatives_file? "$false_negatives_file-mapping.log" : undef,
+          true_positives_file => defined $true_positives_file? "$true_positives_file-mapping.log" : undef,
         )
       );
     } elsif($check_type eq 'error' && $self->canCheck($check_type)) {
       $self->addStats($check_type,
         CracTools::BenchCT::Stats->new(nb_elements => $self->checker->nbErrors(),
           false_positives_file => defined $false_positives_file? "$false_positives_file-error.log" : undef,
+          false_negatives_file => defined $false_negatives_file? "$false_negatives_file-error.log" : undef,
+          true_positives_file => defined $true_positives_file? "$true_positives_file-error.log" : undef,
         )
       );
     } elsif($check_type =~ /^(snp|splice|deletion|insertion|chimera)$/ && $self->canCheck($check_type)) {
       $self->addStats($check_type,
         CracTools::BenchCT::Stats->new(nb_elements => $self->checker->nbEvents($check_type),
           false_positives_file => defined $false_positives_file? "$false_positives_file-$check_type.log" : undef,
+          false_negatives_file => defined $false_negatives_file? "$false_negatives_file-$check_type.log" : undef,
+          true_positives_file => defined $true_positives_file? "$true_positives_file-$check_type.log" : undef,
+          print_header => sub { $self->checker->getEvents($check_type)->printHeader(@_) },
+          print_element => sub { $self->checker->getEvents($check_type)->printEvent(@_) },
         )
       );
     }

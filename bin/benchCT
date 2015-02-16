@@ -102,6 +102,7 @@ foreach my $soft (@{$config->{softwares}}) {
       checker => $checker,
       check => $file->{check},
       options => $file->{options},
+      true_positives_file => $file->{true_positives},
       false_positives_file => $file->{false_positives},
       false_negatives_file => $file->{false_negatives},
     );

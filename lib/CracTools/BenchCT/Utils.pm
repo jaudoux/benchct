@@ -12,6 +12,8 @@ package CracTools::BenchCT::Utils;
 sub parseGSBedLineLite {
   my $line = shift;
   my($chr,$start,$end,$name) = split("\t",$line,5);
+  # Remove an eventual "chr" prefix to the reference name
+  $chr =~ s/^chr//;
   return {
     chr => $chr,
     start => $start,

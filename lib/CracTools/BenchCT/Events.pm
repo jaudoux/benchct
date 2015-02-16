@@ -52,6 +52,35 @@ sub addEvent {
   return $self->getLastEventId;
 }
 
+=head2 printHeader
+  
+  $events->printHeader($fh)
+
+Print Header line(s) in the output stream
+
+=cut
+
+sub printHeader {
+  my $self = shift;
+  my $fh = shift;
+  print $fh "event_id\n";
+}
+
+=head2 printEvent
+
+  $events->printEvent($id,$fh)
+
+Print the event on the output stream
+
+=cut
+
+sub printEvent {
+  my $self = shift;
+  my $event_id = shift;
+  my $fh = shift;
+  print $fh $event_id,"\n";
+}
+
 =head2 getEvent
 
   my $event = $self->getEvent($event_id);

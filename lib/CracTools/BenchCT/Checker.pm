@@ -126,6 +126,7 @@ sub _init {
         $chim_line->{strand2},
       );
     }
+    print STDERR "[checker] ".$self->nbEvents('chimera')." chimera(s) read\n" if $self->verbose;
   }
 
   # Read vcf file (snps, indels)
