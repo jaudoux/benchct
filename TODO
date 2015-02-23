@@ -8,6 +8,9 @@
   - insertion
   - deletion
 
+# REFONT
+- isGoodAlignemnt and isTrueError should be implemented as CracTools::Events doughter class
+
 # Binary
 - generates multiple statistics ouput
   - 1 for each software
