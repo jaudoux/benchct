@@ -76,8 +76,8 @@ Print the event on the output stream
 
 sub printEvent {
   my $self = shift;
-  my $event_id = shift;
   my $fh = shift;
+  my $event_id = shift;
   print $fh $event_id,"\n";
 }
 
