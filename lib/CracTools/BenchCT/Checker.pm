@@ -95,6 +95,7 @@ sub _init {
     }
 
     $self->{nb_reads} = $id;
+    print STDERR "[checker] ".scalar $self->nbReads." read(s) parsed\n" if $self->verbose;
   }
 
   # Read junction bed
@@ -106,6 +107,7 @@ sub _init {
     while(my $bed_line = $bed_it->()) {
       $self->getEvents('splice')->addSplice($bed_line->{chr},$bed_line->{start},$bed_line->{end} - $bed_line->{start},CracTools::Utils::convertStrand($bed_line->{strand}));
     }
+    print STDERR "[checker] ".scalar $self->nbEvents('splice')." splice(s) read\n" if $self->verbose;
 
   }
 
@@ -154,6 +156,9 @@ sub _init {
         }
       }
     }
+    print STDERR "[checker] ".$self->nbEvents('snp')." SNP(s) read\n" if $self->verbose;
+    print STDERR "[checker] ".$self->nbEvents('insertion')." insertion(s) read\n" if $self->verbose;
+    print STDERR "[checker] ".$self->nbEvents('deletion')." deletion(s) read\n" if $self->verbose;
   }
 
   # Read errors
@@ -174,6 +179,7 @@ sub _init {
       #$self->{err_pos}[$err_line->{read_id}] = $err_line->{pos};
       $self->{nb_errors}++;
     }
+    print STDERR "[checker] ".$self->nbErrors." error(s) read\n" if $self->verbose;
   }
 }
 
