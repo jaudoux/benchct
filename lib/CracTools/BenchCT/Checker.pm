@@ -390,7 +390,7 @@ sub isGoodAlignment {
         }
          
         # Check if protocol is stranded and the read is mapped to the wrong strand
-        if($self->isStranded && CracTools::Utils::convertStrand($block->{strand}) != $strand) {
+        if($self->isStranded && $block->{strand} != $strand) {
           #print STDERR "Wrong strand\n";
           next;
         }
