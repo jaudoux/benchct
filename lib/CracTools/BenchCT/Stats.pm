@@ -183,7 +183,11 @@ sub closeOutputs {
   if(defined $self->getFalseNegativesFileHandle) {
     for(my $i = 0; $i < $self->bitvector->length; $i++) {
       if($self->bitvector->get($i) == 0) {
-        $self->{print_element}->($self->getFalseNegativesFileHandle,$i);
+        if(defined $self->{print_element}) {
+          $self->{print_element}->($self->getFalseNegativesFileHandle,$i);
+        } else {
+          print $self->getFalseNegativesFileHandle, $i, "\n";
+        }
       }
     }
   }
@@ -206,8 +210,8 @@ sub closeOutputs {
 sub _init {
   my $self = shift;
   # print header ins output files, if they exists
-  $self->{print_header}->($self->getFalseNegativesFileHandle) if defined $self->getFalseNegativesFileHandle;
-  $self->{print_header}->($self->getTruePositivesFileHandle) if defined $self->getTruePositivesFileHandle;
+  $self->{print_header}->($self->getFalseNegativesFileHandle) if defined $self->getFalseNegativesFileHandle && defined $self->{print_header};
+  $self->{print_header}->($self->getTruePositivesFileHandle) if defined $self->getTruePositivesFileHandle && defined $self->{print_header};
 }
 
 sub _getFilehandleIfDef {
