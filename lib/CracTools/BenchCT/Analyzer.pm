@@ -49,6 +49,7 @@ sub new {
           false_positives_file => defined $false_positives_file? "$false_positives_file-mapping.log" : undef,
           false_negatives_file => defined $false_negatives_file? "$false_negatives_file-mapping.log" : undef,
           true_positives_file => defined $true_positives_file? "$true_positives_file-mapping.log" : undef,
+          print_element => sub { my ($fh,$event_id) = @_; print $fh $self->checker->getBedLine($event_id),"\n"; },
         )
       );
     } elsif($check_type eq 'error' && $self->canCheck($check_type)) {

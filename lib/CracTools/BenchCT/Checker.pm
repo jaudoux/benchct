@@ -375,7 +375,7 @@ sub isGoodAlignment {
   # If the read_name is already the read_id we use it directly
   my $read_id = $self->getReadId($read_name);
 
-  my $bed_line = $self->getBedLine($read_id);
+  my $bed_line = $self->getParsedBedLine($read_id);
 
   if(defined $bed_line) {
     my $block_cumulated_size = 0;
@@ -446,8 +446,6 @@ sub getErrFileHandle {
 
 =head2 getBedLine($read_name)
 
-Given a read_name, we return the associated bed line (already parsed
-
 =cut
 
 sub getBedLine {
@@ -460,16 +458,30 @@ sub getBedLine {
     my $seek_pos = $self->{bed_seek_pos}[$read_id];
 
     # Retrieve the whole line in the bed file
-    my $line = CracTools::Utils::getLineFromSeekPos($self->getBedFileHandle,$seek_pos);
-
-    # Parse this line in order to have a nice little hash
-    return CracTools::BenchCT::Utils::parseGSBedLine($line);
-
+    return CracTools::Utils::getLineFromSeekPos($self->getBedFileHandle,$seek_pos);
   } else {
     carp "No seek_pos for read: $read_id in the bed file";
     return undef;
   }
+}
 
+=head2 getParsedBedLine($read_name)
+
+Given a read_name, we return the associated bed line (already parsed
+
+=cut
+
+sub getParsedBedLine {
+  my $self = shift;
+  my $read_id = shift;
+
+  my $bed_line = $self->getBedLine($read_id);
+  if(defined $bed_line) {
+    # Parse this line in order to have a nice little hash
+    return CracTools::BenchCT::Utils::parseGSBedLine($bed_line);
+  } else {
+    return undef;
+  }
 }
 
 =head2 getErrLines($read_name)
