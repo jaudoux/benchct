@@ -186,7 +186,7 @@ sub closeOutputs {
         if(defined $self->{print_element}) {
           $self->{print_element}->($self->getFalseNegativesFileHandle,$i);
         } else {
-          print $self->getFalseNegativesFileHandle, $i, "\n";
+          print $self->getFalseNegativesFileHandle $i,"\n";
         }
       }
     }
