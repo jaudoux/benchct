@@ -68,7 +68,14 @@ sub _processLine {
       if($true_mutation) {
         $self->getStats($type)->addTruePositive(id => $true_mutation);
       } else {
-        $self->getStats($type)->addFalsePositive();
+        $self->getStats($type)->addFalsePositive(out_string => join("\t",
+            $vcf_line->{chr},
+            $vcf_line->{pos},
+            $vcf_line->{id},
+            $vcf_line->{ref},
+            join(',',$vcf_line->{alt}),
+          ),
+        );
       }
     }
   }
