@@ -73,7 +73,7 @@ sub _processLine {
             $vcf_line->{pos},
             $vcf_line->{id},
             $vcf_line->{ref},
-            join(',',$vcf_line->{alt}),
+            join(',',@{$vcf_line->{alt}}),
           ),
         );
       }

@@ -181,12 +181,13 @@ sub closeOutputs {
 
   # First we print FN before closing this stream
   if(defined $self->getFalseNegativesFileHandle) {
+    my $fh = $self->getFalseNegativesFileHandle;
     for(my $i = 0; $i < $self->bitvector->length; $i++) {
       if($self->bitvector->get($i) == 0) {
         if(defined $self->{print_element}) {
-          $self->{print_element}->($self->getFalseNegativesFileHandle,$i);
+          $self->{print_element}->($fh,$i);
         } else {
-          print $self->getFalseNegativesFileHandle $i,"\n";
+          print $fh $i,"\n";
         }
       }
     }
