@@ -42,6 +42,7 @@ my $threshold_del     = $config->{checker}->{thresholds}->{DELELETION};
 my $threshold_chimera = $config->{checker}->{thresholds}->{CHIMERA};
 my $threshold_err     = $config->{checker}->{thresholds}->{ERROR};
 my $threshold_splice  = $config->{checker}->{thresholds}->{SPLICE};
+my $threshold_exon    = $config->{checker}->{thresholds}->{EXON};
 $CracTools::BenchCT::Const::THRESHOLD_MAPPING = $threshold_mapping if defined $threshold_mapping;
 $CracTools::BenchCT::Const::THRESHOLD_SNP     = $threshold_snp     if defined $threshold_snp;
 $CracTools::BenchCT::Const::THRESHOLD_INS     = $threshold_ins     if defined $threshold_ins;
@@ -49,12 +50,14 @@ $CracTools::BenchCT::Const::THRESHOLD_DEL     = $threshold_del     if defined $t
 $CracTools::BenchCT::Const::THRESHOLD_CHIMERA = $threshold_chimera if defined $threshold_chimera;
 $CracTools::BenchCT::Const::THRESHOLD_ERR     = $threshold_err     if defined $threshold_err;
 $CracTools::BenchCT::Const::THRESHOLD_SPLICE  = $threshold_splice  if defined $threshold_splice;
+$CracTools::BenchCT::Const::THRESHOLD_EXON    = $threshold_exon  if defined $threshold_exon;
 
 # Create the checker
 my $checker = CracTools::BenchCT::Checker->new(
   vcf_file            => $config->{checker}->{files}->{mutations}, # contains mutations
   bed_file            => $config->{checker}->{files}->{mapping}, # contains alignements
   err_file            => $config->{checker}->{files}->{errors}, # contains errors
+  gtf_file            => $config->{checker}->{files}->{annotations}, # contains annotations
   junction_bed_file   => $config->{checker}->{files}->{splices},
   chimera_tsv_file    => $config->{checker}->{files}->{chimeras},
   crac_index_conf     => $config->{checker}->{files}->{genome_conf},

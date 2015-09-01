@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 package CracTools::BenchCT::Events::Splice;
-# ABSTRACT: A collection of events of type 'mutation' (snp,indel) on the genome
+# ABSTRACT: A collection of events of type 'splice' on the genome
 
 use parent 'CracTools::BenchCT::Events';
 

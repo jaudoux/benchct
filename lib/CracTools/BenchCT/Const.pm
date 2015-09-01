@@ -12,6 +12,7 @@ our $THRESHOLD_DEL      = 5;
 our $THRESHOLD_CHIMERA  = 20;
 our $THRESHOLD_ERR      = 5;
 our $THRESHOLD_SPLICE   = 5;
+our $THRESHOLD_EXON     = 5;
 
 our $NB_DECIMALS        = 4;
 

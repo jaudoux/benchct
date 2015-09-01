@@ -10,12 +10,15 @@ use CracTools::BenchCT::Events::Mutation;
 use CracTools::BenchCT::Events::SNP;
 use CracTools::BenchCT::Events::Splice;
 use CracTools::BenchCT::Events::Chimera;
+use CracTools::BenchCT::Events::Exon;
+use CracTools::BenchCT::Events::Transcript;
 use Data::Dumper; #for debugging
 use Carp;
 
 =head1 DOCUMENTATION
 
 CracTools::BenchCT::Checker is 0-based!!!
+CracTools::BenchCT::Checker is strand specific by default!
 
 =head2 new
 
@@ -26,7 +29,7 @@ sub new {
   my %args = @_;
 
   my $is_stranded = $args{is_stranded};
-  $is_stranded = 0 if !defined $is_stranded;
+  $is_stranded = 1 if !defined $is_stranded;
 
   my $self = bless {
     is_stranded         => $is_stranded,
@@ -38,6 +41,7 @@ sub new {
     err_fh              => defined $args{err_file}? CracTools::Utils::getReadingFileHandle($args{err_file}) : undef,
     junction_bed_file   => $args{junction_bed_file},
     chimera_tsv_file    => $args{chimera_tsv_file},
+    gtf_file            => $args{gtf_file},
     read_ids            => {}, # TODO avoid this conversion hash and use a interval tree to seek for bed line that could correspond to a read alignement, or we could name using there read_id number...
     bed_seek_pos        => [],
     nb_reads            => 0,
@@ -64,6 +68,14 @@ sub new {
       chimera   => CracTools::BenchCT::Events::Chimera->new(
         verbose => $args{verbose},
         threshold => $CracTools::BenchCT::Const::THRESHOLD_CHIMERA,
+      ),
+      exon   => CracTools::BenchCT::Events::Exon->new(
+        verbose => $args{verbose},
+        threshold => $CracTools::BenchCT::Const::THRESHOLD_EXON,
+      ),
+      transcript   => CracTools::BenchCT::Events::Transcript->new(
+        verbose => $args{verbose},
+        threshold => $CracTools::BenchCT::Const::THRESHOLD_TRANSCRIPT,
       ),
     },
   }, $class;
@@ -180,6 +192,44 @@ sub _init {
       $self->{nb_errors}++;
     }
     print STDERR "[checker] ".$self->nbErrors." error(s) read\n" if $self->verbose;
+  }
+
+  # Read GTF annotations
+  if(defined $self->{gtf_file}) {
+    print STDERR "[checker] Reading gtf file\n" if $self->verbose;
+    my $gtf_it = CracTools::Utils::gffFileIterator($self->{gtf_file},'gtf');
+    my $transcript_id;
+    my @transcript_exons;
+    while(my $gtf_line = $gtf_it->()) {
+      next if $gtf_line->{feature} ne 'exon';
+      next if !defined $gtf_line->{attributes}->{transcript_id};
+      
+      # If this exon belong to a different transcript we add the previous one
+      if(!defined $transcript_id || $transcript_id ne $gtf_line->{attributes}->{transcript_id}) {
+        if(defined $transcript_id) {
+          $self->getEvents('transcript')->addTranscript(@transcript_exons);
+        }
+        @transcript_exons = ();
+        $transcript_id = $gtf_line->{attributes}->{transcript_id};
+      }
+      # Remove chr prefix, in case of
+      $gtf_line->{chr} =~ s/^chr//;
+      # Now we add the current exon
+      my $exon_id = $self->getEvents('exon')->addExon(
+        $gtf_line->{chr},
+        $gtf_line->{start}-1,
+        $gtf_line->{end}-1,
+        CracTools::Utils::convertStrand($gtf_line->{strand}),
+      );
+      # And push it to the current transcript
+      push @transcript_exons, $exon_id;
+    }
+    # We add the last transcript
+    if(@transcript_exons) {
+      $self->getEvents('transcript')->addTranscript(@transcript_exons);
+    }
+    print STDERR "[checker] ".$self->nbEvents('exon')." Exons(s) read\n" if $self->verbose;
+    print STDERR "[checker] ".$self->nbEvents('transcript')." Exons(s) read\n" if $self->verbose;
   }
 }
 
@@ -323,6 +373,33 @@ sub isTrueSplice {
   $strand = 1 if !$self->isStranded();
   my $splice_events = $self->getEvents('splice');
   return $splice_events->isTrueSplice($chr,$start,$length,$strand);
+}
+
+=head2 isTrueExon($chr,$start,$end,$strand)
+
+Return true if the specificed exon match an annotated exon
+
+=cut
+
+sub isTrueExon {
+  my $self = shift;
+  my ($chr,$start,$end,$strand) = @_;
+  $strand = 1 if !$self->isStranded();
+  my $exon_events = $self->getEvents('exon');
+  return $exon_events->isTrueExon($chr,$start,$end,$strand);
+}
+
+=head2 isTrueTranscript($exons)
+
+Return true is the specified transcripts matches a annotated transcript
+
+=cut
+
+sub isTrueTranscript {
+  my $self = shift;
+  my $exons = shift;
+  my $transcript_events = $self->getEvents('transcript');
+  return $transcript_events->isTrueTranscript($exons);
 }
 
 =head2 isTrueChimera($chr1,$pos1,$strand1,$chr2,$pos2,$strand2)

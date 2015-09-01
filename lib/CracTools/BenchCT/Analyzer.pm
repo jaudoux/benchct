@@ -15,6 +15,8 @@ our %check_events = (
   "deletion"   => 0,
   "insertion"  => 0,
   "chimera"    => 0,
+  "exon"       => 0,
+  "transcript" => 0,
 );
 
 =head2 new
@@ -60,7 +62,7 @@ sub new {
           true_positives_file => defined $true_positives_file? "$true_positives_file-error.log" : undef,
         )
       );
-    } elsif($check_type =~ /^(snp|splice|deletion|insertion|chimera)$/ && $self->canCheck($check_type)) {
+    } elsif($check_type =~ /^(snp|splice|deletion|insertion|chimera|exon|transcript)$/ && $self->canCheck($check_type)) {
       $self->addStats($check_type,
         CracTools::BenchCT::Stats->new(nb_elements => $self->checker->nbEvents($check_type),
           false_positives_file => defined $false_positives_file? "$false_positives_file-$check_type.log" : undef,
