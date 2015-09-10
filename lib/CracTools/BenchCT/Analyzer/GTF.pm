@@ -25,7 +25,6 @@ sub _init {
 
   my $transcript_id;
   my @transcript_exons;
-  #my $corrupted_transcript = 0;
   
   while (my $gtf_line = $gtf_it->()) {
     next if $gtf_line->{feature} ne 'exon';
@@ -33,7 +32,6 @@ sub _init {
 
     if(!defined $transcript_id || $transcript_id ne $gtf_line->{attributes}->{transcript_id}) {
       $self->_checkTranscript(\@transcript_exons,$transcript_id) if defined $transcript_id;
-      #$corrupted_transcript = 0;
       @transcript_exons = ();
       $transcript_id = $gtf_line->{attributes}->{transcript_id};
     }
@@ -47,27 +45,21 @@ sub _init {
     );
 
     if($true_exon) {
-      #print STDERR "Found exon: ", ($true_exon-1) ,"\n";
-      $self->getStats('exon')->addTruePositive(id => $true_exon);
+      $self->getStats('exon')->addTruePositive(id => $true_exon) if defined $self->getStats('exon');
       push @transcript_exons, $true_exon - 1;
     } else {
-      #print STDERR "Miss exon: ",join("\t",
-      #    $gtf_line->{chr},
-      #    $gtf_line->{start},
-      #    $gtf_line->{end},
-      #    $gtf_line->{strand}),"\n";
-      #$corrupted_transcript = 1;
       $self->getStats('exon')->addFalsePositive(out_string => join("\t",
           $gtf_line->{chr},
           $gtf_line->{start},
           $gtf_line->{end},
           $gtf_line->{strand},
         ),
-      );
+      ) if defined $self->getStats('exon');
     }
   }
   # Check the last transcript
-  $self->_checkTranscript(\@transcript_exons,$transcript_id) if defined $transcript_id;
+  $self->_checkTranscript(\@transcript_exons,$transcript_id) if defined $transcript_id 
+  && defined $self->getStats('transcript');
 }
 
 sub _checkTranscript {
