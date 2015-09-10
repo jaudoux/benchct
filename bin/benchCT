@@ -101,13 +101,13 @@ foreach my $soft (@{$config->{softwares}}) {
     my $analyzer_name = 'CracTools::BenchCT::Analyzer::'.$file->{type};
     load_module($analyzer_name);
     my $analyzer = $analyzer_name->new(
-      file => $file->{name},
-      checker => $checker,
-      check => $file->{check},
-      options => $file->{options},
-      true_positives_file => $file->{true_positives},
-      false_positives_file => $file->{false_positives},
-      false_negatives_file => $file->{false_negatives},
+      file                  => $file->{name},
+      checker               => $checker,
+      check                 => $file->{check},
+      options               => $file->{options},
+      true_positives_file   => $file->{true_positives},
+      false_positives_file  => $file->{false_positives},
+      false_negatives_file  => $file->{false_negatives},
     );
     push @analyzers, {analyzer => $analyzer, soft => $soft, file => $file->{name}};
   }
@@ -150,8 +150,9 @@ foreach my $soft (keys %softwares) {
 
 # Print output
 my @event_types = sort keys %event_types;
-my @cols = map { my $x = $_; map $x."::".$_, @stat_types } @event_types;
-print "softwares\t",join("\t",@cols),"\n";
+#my @cols = map { my $x = $_; map $x."::".$_, @stat_types } @event_types;
+#print "softwares\t",join("\t",@cols),"\n";
+print join("\t",qw(software event variable value)),"\n";
 foreach my $soft (sort keys %softwares) {
   my @output = ($soft);
   foreach my $event_type (@event_types) {
@@ -169,10 +170,11 @@ foreach my $soft (sort keys %softwares) {
       } else {
         $value = 'NA';
       }
-      push @output, $value;
+      print join("\t",$soft,$event_type,$stat_type,$value),"\n";
+      #push @output, $value;
     }
   }
-  print join("\t",@output),"\n";
+  #print join("\t",@output),"\n";
 }
 
 sub load_module {

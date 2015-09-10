@@ -11,6 +11,8 @@
 # REFONT
 - isGoodAlignemnt and isTrueError should be implemented as CracTools::Events doughter class
 - [DONE] Add transcript assessment support
+- Create daughter classes for CracTools::BenchCT::Stats object to provide more complete
+  statistics according to specific events
 
 # Binary
 - generates multiple statistics ouput
@@ -18,7 +20,7 @@
   - 1 for each cause
 - [DONE] benchCT could be parrallelized, on the file reading/parsing
 - use threads instead of forks (less memory consuming)
-- The output format should be changed to have the following columns (Software, Event, Statistic_type, value)
+- [DONE] The output format should be changed to have the following columns (Software, Event, Statistic_type, value)
 
 # BUGS
 - There is a problem with CRAC insertions there are 1-based instead of 0-based
