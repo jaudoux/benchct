@@ -29,7 +29,7 @@ sub new {
   my %args = @_;
 
   my $is_stranded = $args{is_stranded};
-  $is_stranded = 1 if !defined $is_stranded;
+  $is_stranded = 0 if !defined $is_stranded;
 
   my $self = bless {
     is_stranded         => $is_stranded,
@@ -117,7 +117,12 @@ sub _init {
     my $bed_it = CracTools::Utils::bedFileIterator($self->{junction_bed_file});
 
     while(my $bed_line = $bed_it->()) {
-      $self->getEvents('splice')->addSplice($bed_line->{chr},$bed_line->{start},$bed_line->{end} - $bed_line->{start},CracTools::Utils::convertStrand($bed_line->{strand}));
+      $self->getEvents('splice')->addSplice(
+        $bed_line->{chr},
+        $bed_line->{start},
+        $bed_line->{end} - $bed_line->{start},
+        $self->isStranded? CracTools::Utils::convertStrand($bed_line->{strand}) : 1,
+      );
     }
     print STDERR "[checker] ".scalar $self->nbEvents('splice')." splice(s) read\n" if $self->verbose;
 
@@ -219,7 +224,7 @@ sub _init {
         $gtf_line->{chr},
         $gtf_line->{start}-1,
         $gtf_line->{end}-1,
-        CracTools::Utils::convertStrand($gtf_line->{strand}),
+        $self->isStranded? CracTools::Utils::convertStrand($gtf_line->{strand}) : 1,
       );
       # And push it to the current transcript
       push @transcript_exons, $exon_id;
@@ -229,7 +234,7 @@ sub _init {
       $self->getEvents('transcript')->addTranscript(@transcript_exons);
     }
     print STDERR "[checker] ".$self->nbEvents('exon')." Exons(s) read\n" if $self->verbose;
-    print STDERR "[checker] ".$self->nbEvents('transcript')." Exons(s) read\n" if $self->verbose;
+    print STDERR "[checker] ".$self->nbEvents('transcript')." Transcript(s) read\n" if $self->verbose;
   }
 }
 
