@@ -45,34 +45,15 @@ sub new {
   }
 
   foreach my $check_type (@check_types) {
-    if($check_type eq 'mapping' && $self->canCheck($check_type)) {
-      $self->addStats($check_type,
-        CracTools::BenchCT::Stats->new(nb_elements => $self->checker->nbReads(),
-          false_positives_file => defined $false_positives_file? "$false_positives_file-mapping.log" : undef,
-          false_negatives_file => defined $false_negatives_file? "$false_negatives_file-mapping.log" : undef,
-          true_positives_file => defined $true_positives_file? "$true_positives_file-mapping.log" : undef,
-          print_element => sub { my ($fh,$event_id) = @_; print $fh $self->checker->getBedLine($event_id),"\n"; },
-        )
-      );
-    } elsif($check_type eq 'error' && $self->canCheck($check_type)) {
-      $self->addStats($check_type,
-        CracTools::BenchCT::Stats->new(nb_elements => $self->checker->nbErrors(),
-          false_positives_file => defined $false_positives_file? "$false_positives_file-error.log" : undef,
-          false_negatives_file => defined $false_negatives_file? "$false_negatives_file-error.log" : undef,
-          true_positives_file => defined $true_positives_file? "$true_positives_file-error.log" : undef,
-        )
-      );
-    } elsif($check_type =~ /^(snp|splice|deletion|insertion|chimera|exon|transcript)$/ && $self->canCheck($check_type)) {
-      $self->addStats($check_type,
-        CracTools::BenchCT::Stats->new(nb_elements => $self->checker->nbEvents($check_type),
-          false_positives_file => defined $false_positives_file? "$false_positives_file-$check_type.log" : undef,
-          false_negatives_file => defined $false_negatives_file? "$false_negatives_file-$check_type.log" : undef,
-          true_positives_file => defined $true_positives_file? "$true_positives_file-$check_type.log" : undef,
-          print_header => sub { $self->checker->getEvents($check_type)->printHeader(@_) },
-          print_element => sub { $self->checker->getEvents($check_type)->printEvent(@_) },
-        )
-      );
-    }
+    $self->addStats($check_type,
+      CracTools::BenchCT::Stats->new(nb_elements => $self->checker->nbEvents($check_type),
+        false_positives_file => defined $false_positives_file? "$false_positives_file-$check_type.log" : undef,
+        false_negatives_file => defined $false_negatives_file? "$false_negatives_file-$check_type.log" : undef,
+        true_positives_file => defined $true_positives_file? "$true_positives_file-$check_type.log" : undef,
+        print_header => sub { $self->checker->getEvents($check_type)->printHeader(@_) },
+        print_element => sub { $self->checker->getEvents($check_type)->printEvent(@_) },
+      )
+    );
   }
 
   #$self->_init(@_);

@@ -6,6 +6,8 @@ package CracTools::BenchCT::Checker;
 use CracTools::Utils;
 use CracTools::BenchCT::Const;
 use CracTools::BenchCT::Utils;
+use CracTools::BenchCT::Events::Alignment;
+use CracTools::BenchCT::Events::Error;
 use CracTools::BenchCT::Events::Mutation;
 use CracTools::BenchCT::Events::SNP;
 use CracTools::BenchCT::Events::Splice;
@@ -18,7 +20,7 @@ use Carp;
 =head1 DOCUMENTATION
 
 CracTools::BenchCT::Checker is 0-based!!!
-CracTools::BenchCT::Checker is strand specific by default!
+CracTools::BenchCT::Checker is not strand specific by default!
 
 =head2 new
 
@@ -31,23 +33,26 @@ sub new {
   my $is_stranded = $args{is_stranded};
   $is_stranded = 0 if !defined $is_stranded;
 
+  if(defined $args{err_file} && !defined $args{bed_file}) {
+    # We need the bed file to check errors
+    croak "Missing 'bed_file' to create a conversion table from read name to read id in order to check errors";
+  }
+
   my $self = bless {
     is_stranded         => $is_stranded,
-    #info_file           => $args{info_file}, # contains mutations
     vcf_file            => $args{vcf_file}, # contains mutations
-    bed_file            => $args{bed_file}, # contains alignements
-    bed_fh              => defined $args{bed_file}? CracTools::Utils::getReadingFileHandle($args{bed_file}) : undef,
+    bed_file            => $args{bed_file}, # contains alignments
     err_file            => $args{err_file}, # contains errors
-    err_fh              => defined $args{err_file}? CracTools::Utils::getReadingFileHandle($args{err_file}) : undef,
     junction_bed_file   => $args{junction_bed_file},
     chimera_tsv_file    => $args{chimera_tsv_file},
     gtf_file            => $args{gtf_file},
-    read_ids            => {}, # TODO avoid this conversion hash and use a interval tree to seek for bed line that could correspond to a read alignement, or we could name using there read_id number...
-    bed_seek_pos        => [],
-    nb_reads            => 0,
-    err_seek_pos        => [],
+    read_ids            => {}, # We could avoid that somehow by placing in read names their mapping position and error informations
     verbose             => defined $args{verbose}? $args{verbose} : 0,
     events              => {
+      mapping => CracTools::BenchCT::Events::Alignment->new(
+        verbose => $args{verbose},
+        threshold => $CracTools::BenchCT::Const::THRESHOLD_MAPPING,
+      ),
       snp       => CracTools::BenchCT::Events::SNP->new(
         verbose => $args{verbose},
         threshold => $CracTools::BenchCT::Const::THRESHOLD_SNP,
@@ -88,26 +93,57 @@ sub new {
 sub _init {
   my $self = shift;
 
+  my $max_read_length = 0;
+
   # Read bed file for alignements
   if(defined $self->{bed_file}) {
     print STDERR "[checker] Reading bed file\n" if $self->verbose;
     
     # First we read the bed files and we record seek positions of each read
     my $bed_it = CracTools::Utils::getFileIterator(file =>$self->{bed_file},
-      parsing_method => \&CracTools::BenchCT::Utils::parseGSBedLineLite,
+      parsing_method => \&CracTools::BenchCT::Utils::parseGSBedLine,
     );
 
-    my $id = 0;
     while(my $bed_line = $bed_it->()) {
-      # Set number to read ids
+      # Add the alignment
+      my $id = $self->getEvents('mapping')->addAlignment($bed_line);
+      # Create an entry to the conversion table
       $self->{read_ids}->{$bed_line->{name}} = $id;
-      # Set seek pos of each bed alignement according to the read id
-      $self->{bed_seek_pos}[$id] = $bed_line->{seek_pos};
-      $id++;
+      # Update the maximum read_length
+      my $read_length = 0;
+      map { $read_length += $_->{size} } @{$bed_line->{blocks}};
+      $max_read_length = $read_length if $read_length > $max_read_length;
     }
 
-    $self->{nb_reads} = $id;
-    print STDERR "[checker] ".scalar $self->nbReads." read(s) parsed\n" if $self->verbose;
+    print STDERR "[checker] ".scalar $self->nbEvents('mapping')." alignment(s) read\n" if $self->verbose;
+
+    # Read errors only if we have a bed file
+    if(defined $self->{err_file}) {
+
+      # We create the error library set
+      $self->{events}->{error} = CracTools::BenchCT::Events::Error->new(
+        nb_reads      => $self->nbEvents('mapping'),
+        max_length    => $max_read_length,
+        verbose       => $self->{verbose},
+      );
+
+      print STDERR "[checker] Reading error file\n" if $self->verbose;
+
+      # Now we read the error file
+      my $err_it = CracTools::Utils::getFileIterator(file =>$self->{err_file},
+        parsing_method => \&CracTools::BenchCT::Utils::parseErrLine,
+      );
+
+      while(my $err_line = $err_it->()) {
+        if($err_line->{read_id} >= $self->nbEvents('mapping')) {
+          croak "There is more read in 'err_file' than in the 'bed_file' alignment file";
+        }
+        $self->getEvents('error')->addError($err_line->{read_id},$err_line->{pos});
+      }
+
+      print STDERR "[checker] ".$self->nbEvents('error')." error(s) read\n" if $self->verbose;
+    }
+
   }
 
   # Read junction bed
@@ -125,7 +161,6 @@ sub _init {
       );
     }
     print STDERR "[checker] ".scalar $self->nbEvents('splice')." splice(s) read\n" if $self->verbose;
-
   }
 
   # Read chimera file
@@ -178,27 +213,6 @@ sub _init {
     print STDERR "[checker] ".$self->nbEvents('deletion')." deletion(s) read\n" if $self->verbose;
   }
 
-  # Read errors
-  if(defined $self->{err_file}) {
-    print STDERR "[checker] Reading error file\n" if $self->verbose;
-    # Now we read the error file
-    my $err_it = CracTools::Utils::getFileIterator(file =>$self->{err_file},
-      parsing_method => \&CracTools::BenchCT::Utils::parseErrLine,
-    );
-
-    # TODO there can be more than one error per read...
-    my $read_id = -1;
-    while(my $err_line = $err_it->()) {
-      if($err_line->{read_id} != $read_id) {
-        $self->{err_seek_pos}[$err_line->{read_id}] = $err_line->{seek_pos};
-        $read_id = $err_line->{read_id};
-      }
-      #$self->{err_pos}[$err_line->{read_id}] = $err_line->{pos};
-      $self->{nb_errors}++;
-    }
-    print STDERR "[checker] ".$self->nbErrors." error(s) read\n" if $self->verbose;
-  }
-
   # Read GTF annotations
   if(defined $self->{gtf_file}) {
     print STDERR "[checker] Reading gtf file\n" if $self->verbose;
@@ -241,24 +255,13 @@ sub _init {
 =head2 isStranded
 
 return true is the CracTools::BenchCT::Checker used stranded simulated data, and therfore is
-carreful about strand given by each tools for alignements or events.
+carreful about strand given by each tools for alignments or events.
 
 =cut
 
 sub isStranded {
   my $self = shift;
   return $self->{is_stranded};
-}
-
-=head2 nbReads
-
-Return the number of reads in the simulated data
-
-=cut
-
-sub nbReads {
-  my $self = shift;
-  return $self->{nb_reads};
 }
 
 =head2 verbose 
@@ -427,16 +430,13 @@ sub isTrueChimera {
 sub isTrueError {
   my $self = shift;
   my ($read_name, $pos) = @_;
-  # convert read name into a read id
-  # If the read_name is already the read_id we use it directly
   my $read_id = $self->getReadId($read_name);
-  my $err_lines = $self->getErrLines($read_id);
-  foreach my $err (@{$err_lines}) {
-    if(abs($err->{pos} - $pos) <= $CracTools::BenchCT::Const::THRESHOLD_ERR) {
-      return 1;
-    }
-  }
-  return 0;
+
+  # Check if the read id exists
+  return 0 if !defined $read_id;
+
+  my $error_events = $self->getEvents('error');
+  return $error_events->isTrueError($read_id,$pos);
 }
 
 =head2 isGoodAlignment
@@ -453,161 +453,13 @@ Return true is the alignment of this read is good.
 sub isGoodAlignment {
   my ($self,$read_name,$ref_name,$pos_start,$ref_start,$strand) = @_;
 
-  # convert read name into a read id
-  # If the read_name is already the read_id we use it directly
   my $read_id = $self->getReadId($read_name);
 
-  my $bed_line = $self->getParsedBedLine($read_id);
+  # Check if the read id exists
+  return 0 if !defined $read_id;
 
-  if(defined $bed_line) {
-    my $block_cumulated_size = 0;
-
-    # We try to find the first block where the read is located
-    foreach my $block (@{$bed_line->{blocks}}) {
-      if($block->{block_end} > $pos_start) {
-        # Check if the read has been mapped to the right reference
-        if($block->{chr} ne $ref_name) {
-          #print STDERR "Wrong chr\n";
-          next;
-        }
-         
-        # Check if protocol is stranded and the read is mapped to the wrong strand
-        if($self->isStranded && $block->{strand} != $strand) {
-          #print STDERR "Wrong strand\n";
-          next;
-        }
-
-        # Difference between the first pos of the block to the
-        # pos where the alignement is started
-        my $delta = $pos_start - $block->{block_start};
-       
-
-        # Check if the position if right within a THRESHOLD_MAPPING window
-        if(abs($block->{ref_start} + $delta - $ref_start) <= $CracTools::BenchCT::Const::THRESHOLD_MAPPING) {
-          return $read_id + 1;
-        }
-      }
-    }
-  } else {
-    warn "There is a problem with the read $read_name";
-    print STDERR Dumper($bed_line);
-    return 0;
-  }
-  return 0;
-}
-
-=head2 getBedFileHandle
-
-Return a filehandle on the bed file.
-
-=cut
-
-sub getBedFileHandle {
-  my $self = shift;
-  my $new_fh = shift;
-  if(defined $new_fh) {
-    $self->{bed_fh} = $new_fh;
-  }
-  return $self->{bed_fh};
-}
-
-=head2 getErrFileHandle
-
-Return a filehandle on the bed file.
-
-=cut
-
-sub getErrFileHandle {
-  my $self = shift;
-  my $new_fh = shift;
-  if(defined $new_fh) {
-    $self->{err_fh} = $new_fh;
-  }
-  return $self->{err_fh};
-}
-
-=head2 getBedLine($read_name)
-
-=cut
-
-sub getBedLine {
-  my $self = shift;
-  my $read_id = shift;
-
-  # Get the seek position of this read in the bed file
-
-  if(defined $read_id) {
-    my $seek_pos = $self->{bed_seek_pos}[$read_id];
-
-    # Retrieve the whole line in the bed file
-    return CracTools::Utils::getLineFromSeekPos($self->getBedFileHandle,$seek_pos);
-  } else {
-    carp "No seek_pos for read: $read_id in the bed file";
-    return undef;
-  }
-}
-
-=head2 getParsedBedLine($read_name)
-
-Given a read_name, we return the associated bed line (already parsed
-
-=cut
-
-sub getParsedBedLine {
-  my $self = shift;
-  my $read_id = shift;
-
-  my $bed_line = $self->getBedLine($read_id);
-  if(defined $bed_line) {
-    # Parse this line in order to have a nice little hash
-    return CracTools::BenchCT::Utils::parseGSBedLine($bed_line);
-  } else {
-    return undef;
-  }
-}
-
-=head2 getErrLines($read_name)
-
-=cut
-
-sub getErrLines {
-  my $self = shift;
-  my $read_id = shift;
-
-  my @err_lines;
-
-  # Get the seek position of this read in the err file
-  my $seek_pos = $self->{err_seek_pos}[$read_id];
-
-  if(defined $seek_pos) {
-
-    my $fh = $self->getErrFileHandle;
-
-    # Retrieve the whole line in the bed file
-    my $line = CracTools::Utils::getLineFromSeekPos($fh,$seek_pos);
-
-    # Parse this line in order to have a nice little hash
-    push(@err_lines,CracTools::BenchCT::Utils::parseErrLine($line));
-
-    # Look at next lines, if they belong to the same read
-    my $found_error = 1;
-    while($found_error) {
-      my $next_line = <$fh>;
-      last if not $next_line;
-      my $err_line = CracTools::BenchCT::Utils::parseErrLine($next_line);
-      if($err_line->{read_id} == $read_id) {
-        push(@err_lines,$err_line);
-      } else {
-        $found_error = 0;
-      }
-    }
-  } else {
-    # Should we carp?
-    # This just means that the read has no error....
-    #carp "No seek_pos for read: $read_name in the err file";
-  }
-
-  return \@err_lines;
+  my $alignment_events = $self->getEvents('mapping');
+  return $alignment_events->isGoodAlignment($read_id,$ref_name,$pos_start,$ref_start,$strand);
 }
 
 1;

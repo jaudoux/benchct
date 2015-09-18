@@ -13,6 +13,8 @@
 - [DONE] Add transcript assessment support
 - Create daughter classes for CracTools::BenchCT::Stats object to provide more complete
   statistics according to specific events
+- Add an option to only check a sample of element (specially for mapping) to reduce
+  benchmark time
 
 # Binary
 - generates multiple statistics ouput

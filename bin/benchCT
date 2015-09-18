@@ -122,10 +122,6 @@ foreach my $analyzer (@analyzers) {
   
   my %stats;
 
-  # Set a new FileHandle for the child because we will seek that file
-  $checker->getBedFileHandle(CracTools::Utils::getReadingFileHandle($config->{checker}->{files}->{mapping})) if defined $config->{checker}->{files}->{mapping};
-  $checker->getErrFileHandle(CracTools::Utils::getReadingFileHandle($config->{checker}->{files}->{errors})) if defined $config->{checker}->{files}->{errors};
-
   # This starts the analyzer to process its file
   $analyzer->{analyzer}->run();
 

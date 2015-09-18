@@ -3,6 +3,8 @@ use warnings;
 package CracTools::BenchCT::Events;
 # ABSTRACT: A generic collection of events on the genome
 
+use Carp;
+
 =head2 new
 
 =cut
