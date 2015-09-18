@@ -62,7 +62,7 @@ sub _checkErrors {
     next if $err->{type} =~ /Sub/i;
     my $pos = $err->{pos};
     if($sam_line->isFlagged($CracTools::SAMReader::SAMline::flags{REVERSE_COMPLEMENTED})) {
-      $pos = length($sam_line->seq) - $pos;
+      $pos = length($sam_line->seq) - $pos - 1;
     }
     if($self->checker->isTrueError($sam_line->qname,$pos)) {
       $self->getStats('error')->addTruePositive(); 
