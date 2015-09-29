@@ -217,19 +217,22 @@ sub _init {
   if(defined $self->{gtf_file}) {
     print STDERR "[checker] Reading gtf file\n" if $self->verbose;
     my $gtf_it = CracTools::Utils::gffFileIterator($self->{gtf_file},'gtf');
+    my $prev_transcript_id;
     my $transcript_id;
     my @transcript_exons;
     while(my $gtf_line = $gtf_it->()) {
       next if $gtf_line->{feature} ne 'exon';
-      next if !defined $gtf_line->{attributes}->{transcript_id};
+
+      $transcript_id = $gtf_line->{attributes}->{transcript_id};
+      next if !defined $transcript_id;
       
       # If this exon belong to a different transcript we add the previous one
-      if(!defined $transcript_id || $transcript_id ne $gtf_line->{attributes}->{transcript_id}) {
-        if(defined $transcript_id) {
-          $self->getEvents('transcript')->addTranscript(@transcript_exons);
+      if(!defined $prev_transcript_id || $prev_transcript_id ne $transcript_id) {
+        if(defined $prev_transcript_id) {
+          my $id = $self->getEvents('transcript')->addTranscript(@transcript_exons);
         }
         @transcript_exons = ();
-        $transcript_id = $gtf_line->{attributes}->{transcript_id};
+        $prev_transcript_id = $transcript_id;
       }
       # Remove chr prefix, in case of
       $gtf_line->{chr} =~ s/^chr//;

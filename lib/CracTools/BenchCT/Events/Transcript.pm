@@ -25,21 +25,34 @@ sub new {
   return $self;
 }
 
+sub printEvent {
+  my ($self,$fh,$id) = @_;
+  my $exons = $self->getEvent($id);
+  print $fh join("\t",$id,join(",",@{$exons})),"\n";
+}
+
 sub addTranscript {
   my $self = shift;
   my @exons = @_; 
 
-  my $id = $self->addEvent(\@exons); # Increment the number of exons
+  my ($nb_match,$transcript_id) = $self->isTrueTranscript(\@exons);
 
-  # We place the transcript_id in the exons hash to access the transcript
-  # structure from any of its exons
-  foreach my $exon (@exons) {
-    push @{$self->{exons}->{$exon}}, $id;
+  # Check if this transcript already exists
+  if($transcript_id && $nb_match == @exons) {
+    return $transcript_id - 1;
+  # If not we create a new entry
+  } else {
+    my $id = $self->addEvent(\@exons); # Increment the number of exons
+
+    # We place the transcript_id in the exons hash to access the transcript
+    # structure from any of its exons
+    foreach my $exon (@exons) {
+      push @{$self->{exons}->{$exon}}, $id;
+    }
+
+    $self->{transcripts}->{$id} = \@exons;
+    return $id;
   }
-
-  $self->{transcripts}->{$id} = \@exons;
-
-  return $id;
 }
 
 sub isTrueTranscript {
@@ -48,9 +61,9 @@ sub isTrueTranscript {
   return 0 if !defined $exons || @{$exons} == 0;
   my $first_exon = $exons->[0];
   my $potential_transcripts = $self->{exons}->{$first_exon};
+  my $best_match;
+  my $nb_exons_best_match = 0;
   foreach my $transcript (@{$potential_transcripts}) {
-    #print STDERR "Try matching transcript $transcript: ";
-    #print STDERR join ",",@{$self->{transcripts}->{$transcript}},"\n";
     #next if @{$self->{transcripts}->{$transcript}} != @{$exons};
     my $nb_match_exons = 0;
     foreach my $exon (@{$exons}) {
@@ -60,12 +73,16 @@ sub isTrueTranscript {
         last;
       }
     }
-    if($nb_match_exons == @{$exons}) {
-      #print STDERR "Transcript matched\n";
-      return $transcript + 1;
+    if($nb_match_exons == @{$exons} && $nb_match_exons > $nb_exons_best_match) {
+      $best_match          = $transcript;
+      $nb_exons_best_match = $nb_match_exons;
     }
   }
-  return 0;
+  if(defined $best_match) {
+    return ($nb_exons_best_match,$best_match + 1);
+  } else {
+    return 0;
+  }
 }
 
 1;

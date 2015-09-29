@@ -28,6 +28,8 @@ pod2usage(-verbose => 2)  if ($man);
 
 my $config_file = shift @ARGV;
 
+die "No config file specified" unless defined $config_file; 
+
 my $config = LoadFile($config_file);
 #print Dumper($config);
 

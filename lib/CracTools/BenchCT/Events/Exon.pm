@@ -6,6 +6,7 @@ package CracTools::BenchCT::Events::Exon;
 use parent 'CracTools::BenchCT::Events';
 
 use CracTools::Interval::Query;
+use List::Util qw(min max);
 
 =head2 new
 
@@ -25,6 +26,12 @@ sub new {
   return $self;
 }
 
+sub printEvent {
+  my ($self,$fh,$id) = @_;
+  my $exon = $self->getEvent($id);
+  print $fh join("\t",$id,split('-',$exon)),"\n";
+}
+
 sub intervalQuery {
   my $self = shift;
   return $self->{interval_query};
@@ -37,11 +44,9 @@ sub addExon {
   # First we look if this exon already exists using a 0 threshold
   my $id = $self->_foundExon($chr,$start,$end,$strand,0);
   if($id) {
-    #print STDERR "No new exon added (found exon ",($id -1),")\n";
     return $id - 1;
   } else {
-    $id = $self->addEvent($end-$start); # Increment the number of exons
-    #print STDERR "New exon added (id: $id)\n";
+    $id = $self->addEvent("$start-$end"); # Increment the number of exons
     $self->intervalQuery->addInterval($chr,$start,$end,$strand,$id);
     return $id;
   }
@@ -61,15 +66,25 @@ sub _foundExon {
   # The 1 at the we means that we use a "windowed" query
   # TODO there is a bug in Set::IntervalTree windowed query, we are no longer using them
   my @matching_exons = @{$self->intervalQuery->fetchByRegion($chr,$start-$threshold,$end+$threshold,$strand,0)};
-  my $length = $end - $start;
+  my $best_overlap = 0;
+  my $best_exon;
   foreach my $exon (@matching_exons) {
-    my $exon_length = $self->getEvent($exon);
-    if(abs($exon_length - $length) <= $threshold) {
-      return $exon + 1;
+    my ($exon_start,$exon_end) = split('-',$self->getEvent($exon));
+    my $overlap_length = min($exon_end,$end) - max($exon_start,$start) + 1;
+    my $total_length   = max($exon_end,$end) - min($exon_start,$start) + 1;
+    my $overlap_cover  = $overlap_length/$total_length;
+    if(($total_length - $overlap_length) <= $threshold && $overlap_cover > $best_overlap) {
+      $best_exon    = $exon;
+      $best_overlap = $overlap_cover;
+      last if $best_overlap == 1;
     }
   }
-
-  return 0;
+  
+  if(defined $best_exon) {
+    return $best_exon + 1;
+  } else {
+    return 0;
+  }
 }
 
 1;

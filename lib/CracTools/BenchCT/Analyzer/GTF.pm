@@ -23,17 +23,22 @@ sub _init {
   my $gtf_file = $args{file};
   my $gtf_it = CracTools::Utils::gffFileIterator($gtf_file,'gtf');
 
+  my $prev_transcript_id;
   my $transcript_id;
   my @transcript_exons;
   
   while (my $gtf_line = $gtf_it->()) {
     next if $gtf_line->{feature} ne 'exon';
-    next if !defined $gtf_line->{attributes}->{transcript_id};
 
-    if(!defined $transcript_id || $transcript_id ne $gtf_line->{attributes}->{transcript_id}) {
-      $self->_checkTranscript(\@transcript_exons,$transcript_id) if defined $transcript_id;
+    $transcript_id = $gtf_line->{attributes}->{transcript_id};
+    next if !defined $transcript_id;
+
+    if(!defined $prev_transcript_id || $prev_transcript_id ne $transcript_id) {
+      if(defined $prev_transcript_id && defined $self->getStats('transcript')) {
+        $self->_checkTranscript(\@transcript_exons,$prev_transcript_id);
+      }
       @transcript_exons = ();
-      $transcript_id = $gtf_line->{attributes}->{transcript_id};
+      $prev_transcript_id = $transcript_id;
     }
 
     # Remember that checker is 0-based
@@ -70,7 +75,7 @@ sub _checkTranscript {
   if($true_transcript) {
     $self->getStats('transcript')->addTruePositive(id => $true_transcript);
   } else {
-    $self->getStats('transcript')->addFalsePositive(out_string => $transcript_id);
+    $self->getStats('transcript')->addFalsePositive();
   }
 }
 
