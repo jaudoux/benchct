@@ -9,12 +9,20 @@
   - deletion
 
 # REFONT
-- isGoodAlignemnt and isTrueError should be implemented as CracTools::Events doughter class
+- [DONE] isGoodAlignemnt and isTrueError should be implemented as CracTools::Events doughter class
 - [DONE] Add transcript assessment support
 - Create daughter classes for CracTools::BenchCT::Stats object to provide more complete
   statistics according to specific events
+- [DONE] Create a daughter class for CracTools::Events classes that are based on IntervalTree
+  like exons, splice
+- Find a way to standardized event checking, to avoid giving special method name for each event checker
 - Add an option to only check a sample of element (specially for mapping) to reduce
   benchmark time
+- Find a way to merge parser that are common between the Checker and some Analyzers
+- Refont the way we handles threshold for event checking
+  - we should be able to change the values for a specific file checking
+  - we should also be able to add new threshold parameters
+- Propose new checking parameters for transcript coverage
 
 # Binary
 - generates multiple statistics ouput
@@ -26,3 +34,5 @@
 
 # BUGS
 - There is a problem with CRAC insertions there are 1-based instead of 0-based
+  Actually there is more problems with CRAC, 
+
