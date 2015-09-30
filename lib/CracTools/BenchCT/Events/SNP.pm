@@ -52,24 +52,37 @@ Add a new event to the collection
 sub addMutation {
   my $self  = shift;
   my ($chr,$pos,$new_nuc) = @_;
-  my $id = $self->addEvent($new_nuc);
-  $self->intervalQuery->addInterval($chr,
-    $pos,
-    $pos,
-    undef, # A mutation does not have a strand....
-    $id,
-  );
+  # First we check if this event is already registered
+  my $id = $self->isTrueMutation($chr,$pos,$new_nuc,0);
+  if($id) {
+    return $id - 1;
+  } else {
+    $id = $self->addEvent($new_nuc);
+    $self->intervalQuery->addInterval($chr,
+      $pos,
+      $pos,
+      undef, # A mutation does not have a strand....
+      $id,
+    );
+    return $id;
+  }
 }
 
 sub isTrueMutation {
   my $self = shift;
   my ($chr,$pos,$nuc) = @_;
-  my @snps = @{$self->intervalQuery->fetchByRegion($chr,$pos - $self->threshold,$pos + $self->threshold)};
+  return $self->_foundSNP($chr,$pos,$nuc,$self->threshold);
+}
+
+sub _foundSNP {
+  my $self = shift;
+  my ($chr,$pos,$nuc,$threshold) = @_;
+  my @snps = @{$self->intervalQuery->fetchByRegion($chr,$pos - $threshold,$pos + $threshold)};
   # We return true if we have found a matching snp that have the same length
-  foreach my $snp (@snps) {
-    my $snp_nuc = $self->getEvent($snp);
+  foreach my $snp_id (@snps) {
+    my $snp_nuc = $self->getEvent($snp_id);
     if($snp_nuc eq $nuc) {
-      return $snp + 1;
+      return $snp_id + 1;
     }
   }
   return 0;

@@ -195,10 +195,11 @@ sub _init {
       foreach my $alt (@{$vcf_line->{alt}}) {
         my $alt_length = length $alt;
         my $mutation_type = $vcf_line->{type};
+        next if $alt eq 'N' && $vcf_line->{ref} eq 'N';
         # It is a substitution
         if($ref_length == $alt_length) {
           # We shift the pos if the reference has more than one nucleotide
-          $self->getEvents('snp')->addMutation($vcf_line->{chr},$vcf_line->{pos} + $ref_length - 2,$alt);
+          my $id = $self->getEvents('snp')->addMutation($vcf_line->{chr},$vcf_line->{pos} + $ref_length - 2,$alt);
         # This is a deletion
         } elsif($ref_length > $alt_length) {
           $self->getEvents('deletion')->addMutation($vcf_line->{chr},$vcf_line->{pos} + $alt_length - 2,$ref_length - $alt_length);
