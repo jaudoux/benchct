@@ -20,16 +20,35 @@ sub canCheck {
 sub _processLine {
   my $self = shift;
   my $bed_line = shift;
-  # Loop over blocks
-  for(my $i=1; $i < @{$bed_line->{blocks}}; $i++) {
+  # Check if the bed line has blocks
+  # otherwise start and end pos are the splice positions
+  if(@{$bed_line->{blocks}}) {
+    # Loop over blocks
+    for(my $i=1; $i < @{$bed_line->{blocks}}; $i++) {
 
-    # Extract splice coordinates
-    my $chr = $bed_line->{chr};
-    my $strand = CracTools::Utils::convertStrand($bed_line->{strand});
-    my $start = $bed_line->{blocks}[$i-1]->{ref_end};
-    my $end = $bed_line->{blocks}[$i]->{ref_start};
-    my $length = $end - $start;
-    my $true_splice = $self->checker->isTrueSplice($chr,$start,$length,$strand);
+      # Extract splice coordinates
+      my $chr = $bed_line->{chr};
+      my $strand = CracTools::Utils::convertStrand($bed_line->{strand});
+      my $start = $bed_line->{blocks}[$i-1]->{ref_end};
+      my $end = $bed_line->{blocks}[$i]->{ref_start};
+      my $length = $end - $start + 1;
+      my $true_splice = $self->checker->isTrueSplice($chr,$start,$length,$strand);
+      
+      if($true_splice) {
+        $self->getStats('splice')->addTruePositive(id => $true_splice);
+      } else {
+        #print STDERR Dumper($bed_line);
+        $self->getStats('splice')->addFalsePositive();
+      }
+    }
+  } else {
+    my $length      = $bed_line->{end} - $bed_line->{start} + 1;
+    my $true_splice = $self->checker->isTrueSplice(
+      $bed_line->{chr},
+      $bed_line->{start},
+      $length,
+      CracTools::Utils::convertStrand($bed_line->{strand}),
+    );
     
     if($true_splice) {
       $self->getStats('splice')->addTruePositive(id => $true_splice);
