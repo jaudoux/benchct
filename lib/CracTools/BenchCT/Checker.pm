@@ -156,7 +156,7 @@ sub _init {
       $self->getEvents('splice')->addSplice(
         $bed_line->{chr},
         $bed_line->{start},
-        $bed_line->{end} - $bed_line->{start},
+        $bed_line->{end} - $bed_line->{start} + 1,
         $self->isStranded? CracTools::Utils::convertStrand($bed_line->{strand}) : 1,
       );
     }
