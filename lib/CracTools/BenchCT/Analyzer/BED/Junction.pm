@@ -38,7 +38,13 @@ sub _processLine {
         $self->getStats('splice')->addTruePositive(id => $true_splice);
       } else {
         #print STDERR Dumper($bed_line);
-        $self->getStats('splice')->addFalsePositive();
+        $self->getStats('splice')->addFalsePositive(out_string => join("\t",
+            $chr,
+            $start,
+            $end,
+            $strand,
+            $bed_line->{name},
+        ));
       }
     }
   } else {
@@ -54,7 +60,13 @@ sub _processLine {
       $self->getStats('splice')->addTruePositive(id => $true_splice);
     } else {
       #print STDERR Dumper($bed_line);
-      $self->getStats('splice')->addFalsePositive();
+      $self->getStats('splice')->addFalsePositive(out_string => join("\t",
+          $bed_line->{chr},
+          $bed_line->{start},
+          $bed_line->{end},
+          $bed_line->{strand},
+          $bed_line->{name},
+      ));
     }
   }
 }
