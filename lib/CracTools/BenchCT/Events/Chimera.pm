@@ -66,7 +66,9 @@ sub isTrueChimera {
   my $self = shift;
   my ($chr1,$pos1,$strand1,$chr2,$pos2,$strand2) = @_; 
   my $chim = CracTools::ChimCT::Chimera->new($chr1,$pos1,$strand1,$chr2,$pos2,$strand2);
+  my $chim2 = CracTools::ChimCT::Chimera->new($chr1,$pos1,$strand1*-1,$chr2,$pos2,$strand2*-1);
   my @overlapping_chimeras = @{$self->overlapStructure->getOverlappingChimeras($chim)};
+  push @overlapping_chimeras, @{$self->overlapStructure->getOverlappingChimeras($chim2)};
   my $chim_id = -1;
   my $chim_overlap_dist = -1;
   foreach my $overlap_chim (@overlapping_chimeras) {
