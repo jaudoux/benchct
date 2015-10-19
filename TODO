@@ -1,3 +1,8 @@
+# IMPORTANT
+- BenchCT uses the OverlapStructure module from ChimCT.
+  It should be transfered to the "core" in order to simplify the
+  installation of benchCT!!!
+
 # Libraries
 - Verify that All data in CracTools::BenchCT::Checker are 0 based
 - Verify that analyzers are aware of the 0-based specificity of the checker
