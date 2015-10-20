@@ -67,7 +67,7 @@ sub isTrueTranscript {
     #next if @{$self->{transcripts}->{$transcript}} != @{$exons};
     my $nb_match_exons = 0;
     foreach my $exon (@{$exons}) {
-      if($exon ~~ @{$self->{transcripts}->{$transcript}}) {
+      if(grep $exon eq $_, @{$self->{transcripts}->{$transcript}}) {
         $nb_match_exons++;
       } else {
         last;

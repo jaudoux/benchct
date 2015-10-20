@@ -5,6 +5,20 @@ package CracTools::BenchCT::Utils;
 
 =head1 PARSING SUBROUTINES
 
+=head2 parseInfoLine
+
+=cut
+
+sub parseInfoLine {
+  my $line = shift;
+  my %args = @_;
+  my ($k,$v) = split("\t",$line);
+  return {
+    key       => $k,
+    value     => $v,
+  };
+}
+
 =head2 parseGSBedLineLite
 
 =cut
@@ -85,27 +99,27 @@ sub parseGSBedLine {
   };
 }
 
-=head2 parseInfoFile
+#=head2 parseInfoFile
+#
+#This is a simple parsing method for an info line
+#
+#=cut
 
-This is a simple parsing method for an info line
-
-=cut
-
-sub parseInfoLine {
-  my $line = shift;
-  my %args = @_;
-  my ($read_ids,$chr,$old_pos,$new_pos,$type,$length,$mutation) = split("\t",$line);
-  my @read_ids = sort {$a <=> $b} split(":",$read_ids);
-  return {
-    chr       => $chr,
-    old_pos   => $old_pos,
-    new_pos   => $new_pos,
-    type      => $type,
-    length    => $length,
-    mutation  => $mutation,
-    read_ids   => \@read_ids,
-  };
-}
+#sub parseInfoLine {
+#  my $line = shift;
+#  my %args = @_;
+#  my ($read_ids,$chr,$old_pos,$new_pos,$type,$length,$mutation) = split("\t",$line);
+#  my @read_ids = sort {$a <=> $b} split(":",$read_ids);
+#  return {
+#    chr       => $chr,
+#    old_pos   => $old_pos,
+#    new_pos   => $new_pos,
+#    type      => $type,
+#    length    => $length,
+#    mutation  => $mutation,
+#    read_ids   => \@read_ids,
+#  };
+#}
 
 sub parseErrLine {
   my $line = shift;
@@ -140,6 +154,23 @@ sub parseChimeraLine {
     read_ids  => \@read_ids,
     nb_reads  => $nb_reads,
   };
+}
+
+sub parseReadName {
+  my $read_name = shift;
+  my ($id,$alignments,$errors) = split ":", $read_name;
+  my @alignments = map { my @f = split(',',$_); {
+    chr     => $f[0],
+    pos     => $f[1],
+    strand  => CracTools::Utils::convertStrand($f[2]),
+    cigar   => $f[3],
+  }} split ";", $alignments;
+  my @errors = defined $errors? split ',', $errors : ();
+  return {
+    id          => $id,
+    errors      => \@errors,
+    alignments  => \@alignments,
+  }
 }
 
 1;

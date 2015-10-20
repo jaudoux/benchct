@@ -13,8 +13,8 @@ use File::Temp;
   while(<CHIMERA>) {print $chim_file $_;}
   close $chim_file;
   $CracTools::BenchCT::Const::THRESHOLD_CHIMERA = 10;
-  my $benchCT = CracTools::BenchCT::Checker->new(chimera_tsv_file => $chim_file);
-  ok($benchCT->isTrueChimera(10,48830884,-1,6,3118689,-1));
+  my $benchCT = CracTools::BenchCT::Checker->new(chimera_tsv_file => $chim_file, is_stranded => 1);
+  ok($benchCT->isTrueChimera(10,48830884,1,6,3118689,1));
 }
 
 # GTF and EXON/TRANSCRIPT checking
