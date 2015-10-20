@@ -1,4 +1,5 @@
 #! /usr/bin/perl
+# PODNAME: benchCT
 
 use strict;
 use warnings;

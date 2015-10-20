@@ -2,7 +2,7 @@ use strict;
 use warnings;
 package CracTools::BenchCT::Analyzer::Tophat::Insertion;
 # ABSTRACT: Analyze deletion bed files (as tophat produce)
-#
+ 
 use parent 'CracTools::BenchCT::Analyzer::BED';
 
 use CracTools::Utils;

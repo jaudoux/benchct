@@ -2,7 +2,7 @@ use strict;
 use warnings;
 package CracTools::BenchCT::Analyzer::SAM::GSNAPTransloc;
 # ABSTRACT: Analyze results from a software experiment over the simulated data handled by BenchCT
-#
+ 
 use parent 'CracTools::BenchCT::Analyzer::SAM';
 
 use CracTools::Utils;

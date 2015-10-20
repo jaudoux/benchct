@@ -1,50 +1,49 @@
-use strict;
-use warnings;
 package CracTools::BenchCT::Events::Error;
 # ABSTRACT: A collection of read error positions
 
-use parent 'CracTools::BenchCT::Events';
-
+use Moose;
 use Carp;
 use CracTools::BitVector;
 
-=head2 new
+extends 'CracTools::BenchCT::Events';
 
-=cut
+has nb_reads    => (is => 'ro', isa => 'Int', required => 1);
+has max_length  => (is => 'ro', isa => 'Int', required  => 1);
 
-sub new {
-  my $class = shift;
+has errors_bv   => (
+  is      => 'ro', 
+  lazy    => 1,
+  default => sub { 
+    my $self = shift;
+    return CracTools::BitVector->new($self->nb_reads*$self->max_length);
+  },
+);
 
-  # Call parent constructor
-  my $self  = $class->SUPER::new(@_);
+# Since rank operation has no strong implementation, we have to cheat
+has sampling_rate => (
+  is      => 'ro',
+  isa     => 'Int',
+  lazy    => 1,
+  default => sub { 
+    my $self = shift;
+    return $self->max_length*10;
+  },
+);
 
-  # Get args
-  my %args = @_;
+has sampled_rank => (
+  is => 'ro', 
+  lazy => 1,
+  default => sub { return [] },
+  trigger => sub {
+    my $self = shift;
+    for(my $i = 0; $i < int($self->errors_bv->length/$self->sampling_rate); $i++) {
+      $self->sampled_rank->[$i] = 0;
+    }
+  },
+);
 
-  my $nb_reads      = $args{nb_reads};
-  my $max_length    = $args{max_length};
-  my $sampling_rate = $args{sampling_rate};
+has sampled_rank_status => (is => 'rw', isa => 'Int', default => 0);
 
-  croak "Missing 'nb_reads' argument"   unless defined $nb_reads; 
-  croak "Missing 'max_length' argument" unless defined $max_length; 
-
-  $self->{nb_reads}   = $nb_reads;
-  $self->{max_length} = $max_length;
-
-  # Hash that contains for each read $id its alignement
-  $self->{errors_bv}  = CracTools::BitVector->new($nb_reads*$max_length);
-   
-  # Since rank operation has no strong implementation, we have to cheat
-  $self->{sampling_rate}        = defined $sampling_rate? $sampling_rate : $max_length*10;
-  $self->{sampled_rank}         = [];
-  $self->{sampled_rank_status}  = 0;
-
-  for(my $i = 0; $i < int($self->{errors_bv}->length/$self->{sampling_rate}); $i++) {
-    $self->{sampled_rank}->[$i] = 0;
-  }
-  
-  return $self;
-}
 
 sub addError {
   my $self = shift;
@@ -53,14 +52,14 @@ sub addError {
   my $bv_pos = $self->_getErrorBVPos($read_id,$error_pos);
 
   if(!defined $bv_pos) {
-    croak "Error position ($error_pos) for read $read_id is greater that the maximum read length (".$self->{max_length}.")";
+    croak "Error position ($error_pos) for read $read_id is greater that the maximum read length (".$self->max_length.")";
   }
 
   # Check if the error is not already set
-  if(!$self->{errors_bv}->get($bv_pos)) {
+  if(!$self->errors_bv->get($bv_pos)) {
 
     # We update the sampled rank array
-    $self->{sampled_rank}->[int($bv_pos/$self->{sampling_rate})]++;
+    $self->sampled_rank->[int($bv_pos/$self->sampling_rate)]++;
     # TODO UPDATE SAMPLED RANK
     #$self->{sampled_rank_status} = 0;
 
@@ -68,7 +67,7 @@ sub addError {
     my $id = $self->addEvent();
     #my $id = $self->addEvent($bv_pos);
 
-    $self->{errors_bv}->set($bv_pos);
+    $self->errors_bv->set($bv_pos);
     return $id;
   }
 }
@@ -87,7 +86,7 @@ sub isTrueError {
   }
 
   # If there is an error at this position, we return its ID plus 1
-  if($self->{errors_bv}->get($bv_pos)) {
+  if($self->errors_bv->get($bv_pos)) {
     return $self->_getErrorId($bv_pos) + 1;
   }
 
@@ -105,10 +104,10 @@ sub _getErrorBVPos {
   #  croak "Read ID is not valid";
   #}
 
-  if($error_pos >= $self->{max_length}) {
+  if($error_pos >= $self->max_length) {
     return undef;
   } else {
-    return $read_id*$self->{max_length} + $error_pos;
+    return $read_id*$self->max_length + $error_pos;
   }
 }
 
@@ -119,24 +118,24 @@ sub _getErrorId {
   my $bv_pos    = shift;
   my $error_id  = 0;
 
-  if($self->{sampled_rank_status} == 0) {
-    for(my $i = 1; $i < @{$self->{sampled_rank}}; $i++) {
-      $self->{sampled_rank}->[$i] += $self->{sampled_rank}->[$i-1];
+  if($self->sampled_rank_status == 0) {
+    for(my $i = 1; $i < @{$self->sampled_rank}; $i++) {
+      $self->sampled_rank->[$i] += $self->sampled_rank->[$i-1];
     }
-    $self->{sampled_rank_status} = 1;
+    $self->sampled_rank_status(1);
   }
 
   # Look over the sampled_rank array and sums up
-  my $sampling_group = int($bv_pos/$self->{sampling_rate});
+  my $sampling_group = int($bv_pos/$self->sampling_rate);
   if($sampling_group > 0) {
-    $error_id += $self->{sampled_rank}->[$sampling_group-1];
+    $error_id += $self->sampled_rank->[$sampling_group-1];
   }
   
   # Now we campute the last positions
-  my $sampling_bound = $sampling_group * $self->{sampling_rate} - 1;
+  my $sampling_bound = $sampling_group * $self->sampling_rate - 1;
   while($bv_pos > $sampling_bound) {
     $error_id++;
-    $bv_pos = $self->{errors_bv}->prev($bv_pos-1);
+    $bv_pos = $self->errors_bv->prev($bv_pos-1);
   }
 
   return $error_id -1;

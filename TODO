@@ -28,6 +28,7 @@
   - we should be able to change the values for a specific file checking
   - we should also be able to add new threshold parameters
 - Propose new checking parameters for transcript coverage
+- Try to integrate Moose
 
 # Binary
 - generates multiple statistics ouput

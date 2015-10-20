@@ -2,7 +2,7 @@ use strict;
 use warnings;
 package CracTools::BenchCT::Analyzer;
 # ABSTRACT: Analyze results from a software experiment over the simulated data handled by BenchCT
-#
+ 
 use CracTools::BenchCT::Stats;
 use Carp;
 
