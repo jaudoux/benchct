@@ -139,7 +139,7 @@ sub parseChimeraLine {
   my $line = shift;
   my %args = @_;
   my ($chr1,$pos1,$strand1,$chr2,$pos2,$strand2,$read_ids,$nb_reads) = split("\t",$line);
-  if($strand1 =~ /^[\+-]{1}$/) {
+  if($strand1 =~ /[\+-]/) {
     $strand1 = CracTools::Utils::convertStrand($strand1);
     $strand2 = CracTools::Utils::convertStrand($strand2);
   }
@@ -158,6 +158,8 @@ sub parseChimeraLine {
 
 sub parseReadName {
   my $read_name = shift;
+  # remove /1 /2 trailing 'if present'
+  $read_name =~ s/\/\d$//;
   my ($id,$alignments,$errors) = split ":", $read_name;
   my @alignments = map { my @f = split(',',$_); {
     chr     => $f[0],

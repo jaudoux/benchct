@@ -108,6 +108,8 @@ sub _init {
         $self->{nb_errors} = $info_line->{value};
       }
     }
+    print STDERR "[checker] ".scalar $self->nbEvents('mapping')." alignment(s) read\n" if $self->verbose;
+    print STDERR "[checker] ".$self->nbEvents('error')." error(s) read\n" if $self->verbose;
   } else {
     # Read bed file for alignements
     if(defined $self->{bed_file}) {
@@ -492,9 +494,10 @@ sub isGoodAlignment {
   # the read_name to check alignments
   if(defined $self->{nb_reads}) {
     my $read = CracTools::BenchCT::Utils::parseReadName($read_name);
-    foreach my $a (@{$read->{alignements}}) {
-      next if $a->{chr} ne $ref_name || $a->{strand} != $strand;
-      my @cigar = CracTools::Utils::parseCigarChain($a->{cigar});
+    foreach my $a (@{$read->{alignments}}) {
+      next if $a->{chr} ne $ref_name;
+      next if $a->{strand} != $strand;
+      my @cigar = @{CracTools::Utils::parseCigarChain($a->{cigar})};
       my $pos = $a->{pos};
       foreach my $cigel (@cigar) {
         # If operator is a "matched", try to find an anchoring position
