@@ -56,10 +56,11 @@ $CracTools::BenchCT::Const::THRESHOLD_EXON    = $threshold_exon  if defined $thr
 
 # Create the checker
 my $checker = CracTools::BenchCT::Checker->new(
-  vcf_file            => $config->{checker}->{files}->{mutations}, # contains mutations
-  bed_file            => $config->{checker}->{files}->{mapping}, # contains alignements
-  err_file            => $config->{checker}->{files}->{errors}, # contains errors
-  gtf_file            => $config->{checker}->{files}->{annotations}, # contains annotations
+  info_file           => $config->{checker}->{files}->{infos},      # nb_reads and nb_errors
+  vcf_file            => $config->{checker}->{files}->{mutations},  # contains mutations
+  bed_file            => $config->{checker}->{files}->{mapping},    # contains alignements
+  err_file            => $config->{checker}->{files}->{errors},     # contains errors
+  gtf_file            => $config->{checker}->{files}->{annotations},# contains annotations
   junction_bed_file   => $config->{checker}->{files}->{splices},
   chimera_tsv_file    => $config->{checker}->{files}->{chimeras},
   crac_index_conf     => $config->{checker}->{files}->{genome_conf},
