@@ -3,6 +3,8 @@ use warnings;
 package CracTools::BenchCT::Utils;
 # ABSTRACT: Usefull subroutines to BenchCT
 
+use CracTools::Utils 1.24;
+
 =head1 PARSING SUBROUTINES
 
 =head2 parseInfoLine
@@ -167,7 +169,7 @@ sub parseReadName {
     strand  => CracTools::Utils::convertStrand($f[2]),
     cigar   => $f[3],
   }} split ";", $alignments;
-  my @errors = defined $errors? split ',', $errors : ();
+  my @errors = defined $errors? CracTools::Utils::decodePosListInBase64($errors) : ();
   return {
     id          => $id,
     errors      => \@errors,
