@@ -83,7 +83,12 @@ sub _checkMapping {
     # Get strand, this can be usefull if the simulated data are stranded
     my $strand = $sam_line->isFlagged($CracTools::SAMReader::SAMline::flags{REVERSE_COMPLEMENTED})? -1 : 1;
 
-    my $good_alignment = $self->checker->isGoodAlignment($sam_line->qname,$chr,$pos_start,$sam_line->pos-1,$strand);
+    # Set read type (0 => not PE, 1 => first pair, 2 => second pair)
+    my $read_type = 0;
+    $read_type = 1 if $sam_line->isFlagged($CracTools::SAMReader::SAMline::flags{FIRST_SEGMENT});
+    $read_type = 2 if $sam_line->isFlagged($CracTools::SAMReader::SAMline::flags{LAST_SEGMENT});
+
+    my $good_alignment = $self->checker->isGoodAlignment($sam_line->qname,$chr,$pos_start,$sam_line->pos-1,$strand,$read_type);
 
     # -1 because checker is 0 based
     if($good_alignment) {

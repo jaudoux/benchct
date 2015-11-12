@@ -488,7 +488,7 @@ Return true is the alignment of this read is good.
 =cut
 
 sub isGoodAlignment {
-  my ($self,$read_name,$ref_name,$pos_start,$ref_start,$strand) = @_;
+  my ($self,$read_name,$ref_name,$pos_start,$ref_start,$strand,$read_type) = @_;
 
   # If we are using the "read names" encoded alignments, we parse
   # the read_name to check alignments
@@ -498,15 +498,30 @@ sub isGoodAlignment {
       next if $a->{chr} ne $ref_name;
       next if $a->{strand} != $strand;
       my @cigar = @{CracTools::Utils::parseCigarChain($a->{cigar})};
-      my $pos = $a->{pos};
+      my $b_start = 0;
+      my $b_ref_start = $a->{pos};
       foreach my $cigel (@cigar) {
         # If operator is a "matched", try to find an anchoring position
-        if($cigel->{op} eq 'M' && $ref_start >= $pos &&
-          $ref_start <= ($pos + $cigel->{nb})) {
-          return $read->{id} + 1;
+        if($cigel->{op} eq 'M') {
+          # Difference between the first pos of the block to the
+          # pos where the alignement is started
+          my $delta = $pos_start - $b_start;
+
+          # Check if the position if right within a THRESHOLD_MAPPING window
+          if(abs($b_ref_start + $delta - $ref_start) <= $CracTools::BenchCT::Const::THRESHOLD_MAPPING) {
+            if(defined $read_type && $read_type == 1) {
+              return $read->{id}*2 + 1;
+            } elsif(defined $read_type && $read_type == 2) {
+              return $read->{id}*2 + 2;
+            } else {
+              return $read->{id} + 1;
+            }
+          }
         }
-        # Update pos if the operator is 'reference-based'
-        $pos += $cigel->{nb} if $cigel->{op} =~ /^[MDN=X]$/;
+        # Update b_start if the operator is 'sequence-based'
+        $b_start     += $cigel->{nb} if $cigel->{op} =~ /^[SIMX=]$/;
+        # Update b_ref_start if the operator is 'reference-based'
+        $b_ref_start += $cigel->{nb} if $cigel->{op} =~ /^[MDN=X]$/;
       }
     }
   # Otherwise we use the "mapping" events
