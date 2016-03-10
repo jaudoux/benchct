@@ -25,16 +25,25 @@ extracted from the cigar by searching C<N> characters.
 
 =head1 OPTIONS
 
+=over 1
+
+=item max_hits = INT
+
 If the C<max_hits> option is specified, we will only check reads alignements 
 that have a number of hits (NH field in SAM) inferior to a given value.
 Discarded reads will be counted as I<false-negative>.
 
-  max_hits: positive Integer
+=item sampling_rate = FLOAT
+
+Fraction of reads to subsample
+
+=back
 
 =cut
 
 use CracTools::SAMReader;
 use CracTools::SAMReader::SAMline;
+use File::Temp qw/tempfile/;
 
 sub canCheck {
   my $self = shift;
@@ -49,6 +58,32 @@ sub _init {
   my $self = shift;
   my %args = @_;
   my $sam_file = $args{file};
+  my $options = $args{options};
+
+  # If the subsampling option is activated
+  if(defined $options->{subsample}) {
+    if($sam_file =~ /\.bam$/ && -e "$sam_file.bai") {
+      #my $nb_reads = _nbReadsInBam($sam_file);
+
+      my $sub_sampling_rate = $options->{subsample};
+      # Create a temp bam file wich contains a subsamples of the reads
+      my ($subsample_fh, $subsample_filename) = tempfile(SUFFIX => ".bam");
+      my $command_line = "samtools view -bh $sam_file -s $sub_sampling_rate > $subsample_filename && samtools index $subsample_filename";
+      system($command_line);
+
+      # Count the number of reads that have been subsampled
+      my $nb_reads_subsampled = _nbReadsInBam($subsample_filename);
+
+      # Set the new bam file for the analysis
+      $self->getStats('mapping')->nbElements($nb_reads_subsampled);
+      $sam_file = $subsample_filename;
+
+      #print STDERR "Nb reads before sampling : $nb_reads, Nb reads after : $nb_reads_subsampled\n";
+    } else {
+      print STDERR "Cannot subsample $sam_file, only indexed BAM files can be subsampled\n";
+    }
+  }
+
   my $sam_reader = CracTools::SAMReader->new($sam_file);
   my $sam_it = $sam_reader->iterator();
   while (my $sam_line = $sam_it->()) {
@@ -167,6 +202,28 @@ sub _processLine {
   # stats objects we have
   $self->_checkMapping($sam_line,$options) if defined $self->getStats('mapping');
   $self->_checkSplice($sam_line,$options) if defined $self->getStats('splice');
+}
+
+sub _nbReadsInBam($) {
+  my $bam_file = shift;
+
+  # Create a temp file and run samtools idxstats output
+  my ($nb_reads_fh, $nb_reads_filename) = tempfile(SUFFIX => ".txt");
+  my $command_line = "samtools idxstats $bam_file > $nb_reads_filename";
+  system($command_line);
+
+  # Sum the counts for each chromosome into a single integer
+  my $nb_reads = 0;
+  while(<$nb_reads_fh>) {
+    my ($chr,$length,$reads1,$reads2) = split "\t", $_;
+    if($chr eq "*") {
+      $nb_reads += $reads2;
+    } else {
+      $nb_reads += $reads1;
+    }
+  }
+
+  return $nb_reads;
 }
 
 1;

@@ -52,11 +52,15 @@ sub addTruePositive {
   my $out_string = $args{out_string};
   # If we have already seen this event we do not count it
   if(defined $id) {
-    if($self->bitvector->get($id-1) == 0) {
-      $self->bitvector->set($id-1);
+    $id--;
+    if($self->bitvector->get($id) == 0) {
+      $self->bitvector->set($id);
       $self->{true_positives_nb}++;
       # If we have an output stream and an output string we print it
-      _printOutputString($self->getTruePositivesFileHandle,$out_string);
+      my $fh = $self->getTruePositivesFileHandle;
+      defined $out_string?
+        _printOutputString($fh,join("\t",$id,$out_string)) : 
+        _printOutputString($fh,$id);
     }
   } else {
     $self->{true_positives_nb}++;
@@ -108,6 +112,10 @@ sub bitvector {
 
 sub nbElements {
   my $self = shift;
+  my $nb_elements = shift;
+  if(defined $nb_elements) {
+    $self->{nb_elements} = $nb_elements;
+  }
   return $self->{nb_elements};
 }
 
@@ -210,9 +218,9 @@ sub closeOutputs {
 
 sub _init {
   my $self = shift;
-  # print header ins output files, if they exists
+  # print header in output files, if they exists
   $self->{print_header}->($self->getFalseNegativesFileHandle) if defined $self->getFalseNegativesFileHandle && defined $self->{print_header};
-  $self->{print_header}->($self->getTruePositivesFileHandle) if defined $self->getTruePositivesFileHandle && defined $self->{print_header};
+  #$self->{print_header}->($self->getTruePositivesFileHandle) if defined $self->getTruePositivesFileHandle && defined $self->{print_header};
 }
 
 sub _getFilehandleIfDef {
