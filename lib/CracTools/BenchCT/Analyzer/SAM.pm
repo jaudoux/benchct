@@ -215,12 +215,10 @@ sub _nbReadsInBam($) {
   # Sum the counts for each chromosome into a single integer
   my $nb_reads = 0;
   while(<$nb_reads_fh>) {
-    my ($chr,$length,$reads1,$reads2) = split "\t", $_;
-    if($chr eq "*") {
-      $nb_reads += $reads2;
-    } else {
-      $nb_reads += $reads1;
-    }
+    chomp;
+    my ($chr,$length,$mapped_reads,$unmapped_reads) = split "\t", $_;
+    $nb_reads += $mapped_reads;
+    $nb_reads += $unmapped_reads;
   }
 
   return $nb_reads;
