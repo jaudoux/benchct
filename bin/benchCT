@@ -101,10 +101,29 @@ $pm -> run_on_finish ( # called BEFORE the first call to start()
 foreach my $soft (@{$config->{softwares}}) {
 
   foreach my $file (@{$soft->{files}}) {
-    next if !defined $file->{check};
-    print STDERR "[$soft->{name}] Reading $file->{name} file\n" if $verbose;
+
+    if(!defined $file->{type}) {
+      print STDERR "No Analyzer ('type' keyword) defined for file $file->{name}, skipping ...\n";
+      next;
+    }
+
+    # Check if analyzer exist, and dynamycally load its module
+    # if yes
+    print STDERR "[$soft->{name}] Reading $file->{name} file with $file->{type} analyzer\n" if $verbose;
     my $analyzer_name = 'CracTools::BenchCT::Analyzer::'.$file->{type};
     load_module($analyzer_name);
+
+    # If there is global options defined for this analyzer we add them
+    my $analyzer_config = $config->{analyzers}->{$file->{type}};
+    if(defined $analyzer_config) {
+      $file->{options} = merge_hashes($file->{options},
+                                      $analyzer_config->{options});
+
+      $file->{check} = $analyzer_config->{check} if !defined $file->{check};
+    }
+
+    $file->{check} = "all" if !defined $file->{check};
+
     my $analyzer = $analyzer_name->new(
       file                  => $file->{name},
       checker               => $checker,
@@ -183,4 +202,16 @@ sub load_module {
     (my $file = "$_.pm") =~ s{::}{/}g;
     require $file;
   }
+}
+
+sub merge_hashes {
+  my ($a,$b) = shift;
+  my %c;
+  foreach my $k (keys %{$a}) {
+    $c{$k} = $a->{$k};
+  }
+  foreach my $k (keys %{$b}) {
+    $c{$k} = $b->{$k} if !defined $c{$k};
+  }
+  return \%c;
 }
