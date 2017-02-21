@@ -205,7 +205,7 @@ sub load_module {
 }
 
 sub merge_hashes {
-  my ($a,$b) = shift;
+  my ($a,$b) = @_;
   my %c;
   foreach my $k (keys %{$a}) {
     $c{$k} = $a->{$k};

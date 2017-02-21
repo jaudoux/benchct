@@ -24,7 +24,7 @@ sub _init {
   my $vcf_it = CracTools::Utils::vcfFileIterator($vcf_file);
   while (my $vcf_line = $vcf_it->()) {
     # This is a hook line for subclasses
-    $self->_processLine($vcf_line);
+    $self->_processLine($vcf_line,$args{options});
   }
 }
 
@@ -32,6 +32,12 @@ sub _init {
 sub _processLine {
   my $self = shift;
   my $vcf_line = shift;
+  my $options = shift;
+
+  # Options
+  my $qual = $vcf_line->{qual};
+  return 0 if defined $options->{min_qual} && $qual ne '.' && $qual < $options->{min_qual};
+
   my $ref_length = length $vcf_line->{ref};
   foreach my $alt (@{$vcf_line->{alt}}) {
     my $alt_length = length $alt;
@@ -66,14 +72,24 @@ sub _processLine {
     # Now we check the validity of the event
     if(defined $self->getStats($type)) {
       if($true_mutation) {
-        $self->getStats($type)->addTruePositive(id => $true_mutation);
+        $self->getStats($type)->addTruePositive(id => $true_mutation, out_string =>
+          join("\t",
+            $vcf_line->{chr},
+            $vcf_line->{pos},
+            $vcf_line->{ref},
+            $alt,
+          ),
+        );
       } else {
         $self->getStats($type)->addFalsePositive(out_string => join("\t",
             $vcf_line->{chr},
             $vcf_line->{pos},
             $vcf_line->{id},
             $vcf_line->{ref},
-            join(',',@{$vcf_line->{alt}}),
+            $alt,
+            $vcf_line->{qual},
+            $vcf_line->{filter},
+            defined $vcf_line->{info}? join(";",map { defined $vcf_line->{info}->{$_}? "$_=".$vcf_line->{info}->{$_} : "$_="} keys %{$vcf_line->{info}}) : "",
           ),
         );
       }

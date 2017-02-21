@@ -24,20 +24,22 @@
 - [ ] Find a way to standardized event checking, to avoid giving special method name for each event checker
 - [ ] Add an option to only check a sample of element (specially for mapping) to reduce
   benchmark time
-- [ ] Find a way to merge parser that are common between the Checker and some Analyzers
-- [ ] Refont the way we handles threshold for event checking
-      - we should be able to change the values for a specific file checking
-      - we should also be able to add new threshold parameters
-- [ ] Propose new checking parameters for transcript coverage
-- [ ] Try to integrate Moose
+- Find a way to merge parser that are common between the Checker and some Analyzers
+- Refont the way we handles threshold for event checking
+  - we should be able to change the values for a specific file checking
+  - we should also be able to add new threshold parameters
+- Propose new checking parameters for transcript coverage
+- Try to integrate Moose
+- In the softwares configuration we should not have a list but a hash where the hash key is the software name...
 
 # Binary
-- [ ] generates multiple statistics ouput
-      - 1 for each software
-      - 1 for each cause
-- [x] benchCT could be parrallelized, on the file reading/parsing
-- [ ] use threads instead of forks (less memory consuming)
-- [x] The output format should be changed to have the following columns (Software, Event, Statistic_type, value)
+- generates multiple statistics ouput
+  - 1 for each software
+  - 1 for each cause
+- [DONE] benchCT could be parrallelized, on the file reading/parsing
+- use threads instead of forks (less memory consuming)
+- [DONE] The output format should be changed to have the following columns (Software, Event, Statistic_type, value)
+- [DONE] it could be nice to define general ANALYZER options that will be applied to all analyzers instances
 
 # BUGS
 - [x] There is a problem with CRAC insertions there are 1-based instead of 0-based

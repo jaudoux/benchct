@@ -35,7 +35,9 @@ Discarded reads will be counted as I<false-negative>.
 
 =item sampling_rate = FLOAT
 
-Fraction of reads to subsample
+Fraction of reads to subsample for the analysis. The input file has to be a indexed BAM file.
+IMPORTANT: Make sure that the BAM file also contains the unmapped reads or the results
+will be biased.
 
 =back
 
@@ -61,24 +63,24 @@ sub _init {
   my $options = $args{options};
 
   # If the subsampling option is activated
-  if(defined $options->{subsample}) {
+  if(defined $options->{sampling_rate}) {
     if($sam_file =~ /\.bam$/ && -e "$sam_file.bai") {
-      #my $nb_reads = _nbReadsInBam($sam_file);
-
-      my $sub_sampling_rate = $options->{subsample};
+      my $sub_sampling_rate = $options->{sampling_rate};
       # Create a temp bam file wich contains a subsamples of the reads
       my ($subsample_fh, $subsample_filename) = tempfile(SUFFIX => ".bam");
+      print STDERR "Sampling $sam_file\n";
       my $command_line = "samtools view -bh $sam_file -s $sub_sampling_rate > $subsample_filename && samtools index $subsample_filename";
       system($command_line);
 
       # Count the number of reads that have been subsampled
       my $nb_reads_subsampled = _nbReadsInBam($subsample_filename);
+      my $nb_reads = _nbReadsInBam($sam_file);
+      print STDERR "Nb reads before sampling $sam_file : $nb_reads, nb reads subsampled : $nb_reads_subsampled\n";
 
       # Set the new bam file for the analysis
       $self->getStats('mapping')->nbElements($nb_reads_subsampled);
       $sam_file = $subsample_filename;
 
-      #print STDERR "Nb reads before sampling : $nb_reads, Nb reads after : $nb_reads_subsampled\n";
     } else {
       print STDERR "Cannot subsample $sam_file, only indexed BAM files can be subsampled\n";
     }
@@ -206,20 +208,13 @@ sub _processLine {
 
 sub _nbReadsInBam($) {
   my $bam_file = shift;
+   
+  # Do not count secoundary and sypplementary alignments
+  my $filter_flag = 256 + 2048;
 
-  # Create a temp file and run samtools idxstats output
-  my ($nb_reads_fh, $nb_reads_filename) = tempfile(SUFFIX => ".txt");
-  my $command_line = "samtools idxstats $bam_file > $nb_reads_filename";
-  system($command_line);
-
-  # Sum the counts for each chromosome into a single integer
-  my $nb_reads = 0;
-  while(<$nb_reads_fh>) {
-    chomp;
-    my ($chr,$length,$mapped_reads,$unmapped_reads) = split "\t", $_;
-    $nb_reads += $mapped_reads;
-    $nb_reads += $unmapped_reads;
-  }
+  # Compute the number of reads with samtools binary
+  my $nb_reads = `samtools view $bam_file -c -F $filter_flag`;
+  chomp $nb_reads;
 
   return $nb_reads;
 }
