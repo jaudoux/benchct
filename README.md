@@ -43,10 +43,10 @@ This is an example of a benchCT configuration file:
     ---
     checker:
         files:
-            infos:       //data/reads/Flux/GRCh37-mutated-200-simulated-errors-48M.info
-            mutations:   /data/reads/Flux/GRCh37-mutated-200-simulated-errors-48M.vcf.gz
-            splices:     /data/reads/Flux/GRCh37-mutated-200-simulated-errors-48M-junctions.bed
-            chimeras:    /data/reads/Flux/GRCh37-mutated-200-simulated-errors-48M-chimeras.tsv
+            infos:       GRCh38-mutated-200-48M.info
+            mutations:   GRCh38-mutated-200-48M.vcf.gz
+            splices:     GRCh39-mutated-200-48M-junctions.bed
+            chimeras:    GRCh38-mutated-200-48M-chimeras.tsv
         thresholds:
             MAPPING:    5
             SNP:        5
@@ -122,9 +122,13 @@ are being check.
 
 For example, if you check `mapping` and `splice` events using a SAM file and
 you have choose to output `sensitivity` and `accuracy`, you will have the
-following columns in your output
+following content in your output
 
-    Software    mapping::sensitivity    mapping::accuracy    splice::sensitivity    splice::accuracy
+    software    event    variable     value
+    crac        mapping  Sensitivity  0.8812
+    crac        mapping  Accuracy     0.9982
+    crac        splice   Sensitivity  0.7812
+    crac        splice   Accuracy     0.9965
 
 Each line of the output will correspond to one of the benched softwares. If a
 value is not available for a software, a `NA` will be places instead.
