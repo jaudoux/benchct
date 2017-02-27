@@ -29,14 +29,13 @@ Documentation
 =============
 BenchCT is very simple to run, you just need to run the following command (-v options if for *verbose* mode):
 
-    benchCT -v benchmark.yaml > stats.tsv
+    benchCT [-p nb-threads] -v benchmark.yaml > stats.tsv
 
 The output will be printed in STDOUT, make sure to redirect it to a file if you want to save the results.
 
 BenchCT works with a configuration file, written in
 [YAML](http://www.yaml.org/) syntax that hold the whole configuration of the
 benchmark you want to run.
-
 
 This is an example of a benchCT configuration file:
 
@@ -86,7 +85,7 @@ to generate simulated dataset, these files are automatically produced.
 
 ### Files
 
-- `infos`: this file holds some basic informations about the simulated data (number of reads, number of errors, ...).
+- `infos`: this file holds some basic information about the simulated data (number of reads, number of errors, ...).
 - `mutations`: this file holds the mutations (SNPs and Indels) that will be
   checked. The file format is
   [VCF](http://www.1000genomes.org/wiki/analysis/variant%20call%20format/vcf-variant-call-format-version-41)
@@ -118,7 +117,7 @@ benchCT to produce, and some output configuration like the number of decimals
 for real numbers.
 
 Output format is TSV, the first line will hold the column names. The column
-names depends of the `statistis` that you have chose and the events types that
+names depends of the `statistics` that you have chose and the events types that
 are being check.
 
 For example, if you check `mapping` and `splice` events using a SAM file and
@@ -148,7 +147,7 @@ events with a VCF file.
 #### File `type`
 
 This is the complete list of file types supported by benchCT
-(at this time). If you want more information about a given type you can check its man page (`man CracTools::BenchCT::Analyzer::THE_TYPE`)
+(at this time). If you want more information about a given type (including available options), you can check its man page (`man CracTools::BenchCT::Analyzer::THE_TYPE`)
 
 - BED::DELETION
 - BED::JUNCTION
@@ -166,8 +165,8 @@ This is the complete list of file types supported by benchCT
 - VCF
 
 If you can not find a `type` that matches your file you can either, create your
-own (see `man CracTools::BenchCT::Analyzer`) or convert your file in a standard
-format.
+own (see `man CracTools::BenchCT::Analyzer`) or convert your file in a
+format already supported.
 
 Authors
 =======
