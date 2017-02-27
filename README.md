@@ -4,25 +4,20 @@ The CracTools-BenchCT software (or simply benchCT) is a powerful, yet simple,
 and flexible plateform to benchmark results of softwares that aim to analyse
 data produced by the Next generation sequencing technologies.
 
-The philosophy behind benchCT is to assess NGS softwares results based on a
-response that we already know. This means, we can evaluate softwares based on
-*simulated data*, but also evaluate softwares on real data and use a database
-of known variants and verify their presence in the dataset.
+BenchCT is a qualitative evaluation tool which assess any pipeline results against
+a simulated dataset produce with SimCT to obtain a clear understanding of its performance char-
+acteristics in answering a particular biological question.
 
-Therefore, we can produce statistics about a software's sensitivity and
-accuracy to detect a given event.  BenchCT is able to check the validity of
-various type of events: read mapping, splice alignment, SNPs and InDels calling
-or even sequencing error detection.
+BenchCT is able to check the validity of various type of events: read mapping, splice junction, chimeric junction, SNV and Indel
+or even sequencing error.
 
-In the future we also intend to make benchCT able to assess *differential gene
-expression* or transcript/genome *reconstruction*.
 
 Installation
 ============
-Installing benchCT is very simple, download the tarball and install BenchCT
+Installing benchCT is very simple, download the release tarball and install BenchCT
 with the following command:
 
-    cpanm CracTools-BenchCT.tar.gz
+    cpanm CracTools-BenchCT-vX.XX.tar.gz
 
 If you do not have admin rights, you can use the option `-l` to specify cpanm a
 local directory to install benchCT.
@@ -49,11 +44,10 @@ This is an example of a benchCT configuration file:
     ---
     checker:
         files:
-            mutations:    /data/reads/Flux/GRCh37-mutated-200-simulated-errors-48M.vcf
-            mapping:      /data/reads/Flux/GRCh37-mutated-200-simulated-errors-48M.NotMutatedBed
-            splices:      /data/reads/Flux/GRCh37-mutated-200-simulated-errors-48M-junctions.bed
+            infos:       //data/reads/Flux/GRCh37-mutated-200-simulated-errors-48M.info
+            mutations:   /data/reads/Flux/GRCh37-mutated-200-simulated-errors-48M.vcf.gz
+            splices:     /data/reads/Flux/GRCh37-mutated-200-simulated-errors-48M-junctions.bed
             chimeras:    /data/reads/Flux/GRCh37-mutated-200-simulated-errors-48M-chimeras.tsv
-            errors:       /data/reads/Flux/GRCh37-mutated-200-simulated-errors-48M.err
         thresholds:
             MAPPING:    5
             SNP:        5
@@ -76,7 +70,7 @@ This is an example of a benchCT configuration file:
           files:
             - name: file.sam
               type: SAM
-              check: 
+              check:
                 - mapping
               options:
 
@@ -87,22 +81,21 @@ As you can see the configuration file is divided in 3 parts: **`checker`**,
 
 This first section contains the informations about the
 events that will be checked during this benchmark. In the `file` subsection you
-can define 5 differents files for each type of events to be checked.
+can define 4 differents files for each type of events to be checked. If you use SimCT
+to generate simulated dataset, these files are automatically produced.
 
 ### Files
 
+- `infos`: this file holds some basic informations about the simulated data (number of reads, number of errors, ...).
 - `mutations`: this file holds the mutations (SNPs and Indels) that will be
   checked. The file format is
   [VCF](http://www.1000genomes.org/wiki/analysis/variant%20call%20format/vcf-variant-call-format-version-41)
-- `mapping`: this file holds the mapping information of each read. It is
-  written in [BED](http://genome.ucsc.edu/FAQ/FAQformat.html#format1) format,
-  where the read name is encoded in the *name* colum
 - `splice`s: this file holds the splicing events that will be checked. The file
   format is BED, where the start and end fields define the first and last
   genomic positions of the intron
 - `chimeras`: this file holds the chimeric splices that will be checked. This
   is not a standard format (since none exists). It is a "TAB separated value"
-  file 
+  file
     - chr1
     - pos1
     - strand1
@@ -111,11 +104,6 @@ can define 5 differents files for each type of events to be checked.
     - strand2
     - read_ids
     - nb_reads
-- `errors`: this files holds the sequencing errors positions for each read. It
-  is a TSV file with two columns, 1. the read number (1 is the read number of
-  the first read of the FASTQ_1 file and 2 is the read number of the first read
-  of the FASTQ_2 file, and so on...), 2 the position of the error in the read
-  (starting at 1).
 
 ### Thresholds
 
@@ -186,6 +174,3 @@ Authors
 Jérôme Audoux - jaudoux@cpan.org
 Nicolas Philippe - nphilippe@cpan.org
 Mikaël Salson - mikael.salson@univ-lille1.fr
-
-LICENSE
-=======
